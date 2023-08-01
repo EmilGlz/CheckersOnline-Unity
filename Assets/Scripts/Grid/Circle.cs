@@ -8,10 +8,11 @@ public class Circle : MonoBehaviour
     private bool _isWhite;
     private Vector2 _position;
     public Vector2 Position => _position;
+    public bool IsWhite => _isWhite;
     public bool IsKing => _isKing;
-    public void Init(bool isWhite, Vector2 position)
+    public void Init(bool isWhite, Vector2 position, bool isKing = false)
     {
-        _isKing = false;
+        _isKing = isKing;
         _position = position;
         _isWhite = isWhite;
         _renderer.color = isWhite ? lightColor : darkColor;
