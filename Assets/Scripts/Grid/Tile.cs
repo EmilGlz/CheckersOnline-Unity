@@ -9,6 +9,7 @@ public class Tile : MonoBehaviour
     private Vector2 _position;
     public bool IsWhite => _isWhite;
     public Vector2 Position => _position;
+    public bool IsHighlighted => _highlight.activeInHierarchy;
     public void Init(bool isOffset, Vector2 position)
     {
         _position = position;
@@ -21,18 +22,18 @@ public class Tile : MonoBehaviour
         _highlight.SetActive(highlight);
     }
 
-    void OnMouseEnter()
-    {
-        SetHightlight();
-    }
+    //void OnMouseEnter()
+    //{
+    //    SetHightlight();
+    //}
 
-    void OnMouseExit()
-    {
-        SetHightlight(false);
-    }
+    //void OnMouseExit()
+    //{
+    //    SetHightlight(false);
+    //}
 
     public void OnMouseDown()
     {
-        GridManager.Instance.ShowAvailableMoves(this);
+        GameController.Instance.TilePressed(this);
     }
 }

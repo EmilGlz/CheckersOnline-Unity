@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,54 +25,6 @@ public class GridManager : MonoBehaviour
         _instance = this;
     }
     #endregion
-    public void CreateGrid()
-    {
-        _tiles = new Dictionary<Vector2, Tile>();
-        // Calculate the world space width and height of a single tile based on the screen size and desired number of rows/columns.
-        float screenHeight = 2f * Camera.main.orthographicSize;
-        float screenWidth = screenHeight * Camera.main.aspect;
-
-        // Apply horizontal padding to both left and right sides of the screen.
-        float horizontalPadding = horizontalPaddingPercentage * screenWidth;
-        float totalWidth = screenWidth - 2 * horizontalPadding;
-
-        // Calculate the world space width and height of a single tile to keep them square.
-        float tileSize = Mathf.Min(totalWidth / columns, screenHeight / rows);
-
-        // Calculate the leftmost position of the grid based on the total width and horizontal padding.
-        float leftmostPositionX = -screenWidth / 2f + tileSize / 2f + horizontalPadding;
-        float bottommostPositionY = - tileSize * 3.5f;
-
-        // Create the grid of tiles.
-        for (int x = 0; x < rows; x++)
-        {
-            for (int y = 0; y < columns; y++)
-            {
-                Vector3 tilePosition = new Vector3(
-                    y * tileSize + leftmostPositionX,
-                    x * tileSize + bottommostPositionY,
-                    0f
-                );
-
-                Tile tile = Instantiate(tilePrefab, tilePosition, Quaternion.identity, tilesParent);
-                tile.transform.localScale = new Vector3(tileSize, tileSize, 1f);
-                tile.name = $"Tile {x} {y}";
-                var isOffset = (x % 2 == 0 && y % 2 != 0) || (x % 2 != 0 && y % 2 == 0);
-                tile.Init(isOffset, new Vector2(x, y));
-                _tiles[new Vector2(x, y)] = tile;
-            }
-        }
-    }
-    public Tile GetTileAtPosition(Vector2 pos)
-    {
-        if (_tiles.TryGetValue(pos, out var tile)) return tile;
-        return null;
-    }
-    public Circle GetCircleAtPosition(Vector2 pos)
-    {
-        if (_circles.TryGetValue(pos, out var circle)) return circle;
-        return null;
-    }
     private void CreateWhiteCirclesMock()
     {
         for (int i = 0; i < Mock.WhitePositions.Count; i++)
@@ -96,32 +49,6 @@ public class GridManager : MonoBehaviour
             circle.name = $"Circle {circlePosition.x} {circlePosition.y}";
             circle.Init(false, circlePosition);
             _circles[circlePosition] = circle;
-        }
-    }
-    public void CreateCircles(bool iAmWhite)
-    {
-        _circles = new Dictionary<Vector2, Circle>();
-        if (iAmWhite) // im white
-        {
-            if (Mock.ShowMockWhiteCircles) // i am mock
-                CreateWhiteCirclesMock();
-            else // i am real
-                CreateMyCircles(iAmWhite);
-            if (Mock.ShowMockBlackCircles) // opp is mock
-                CreateBlackCirclesMock();
-            else // opp real
-                CreateOppCircles(iAmWhite);
-        }
-        else // im black
-        {
-            if (Mock.ShowMockBlackCircles) // i am mock
-                CreateBlackCirclesMock();
-            else // i am real
-                CreateMyCircles(iAmWhite);
-            if(Mock.ShowMockWhiteCircles) // opp is mock
-                CreateWhiteCirclesMock();
-            else // opp real
-                CreateOppCircles(iAmWhite);
         }
     }
     private void CreateOppCircles(bool iAmWhite)
@@ -157,24 +84,6 @@ public class GridManager : MonoBehaviour
             }
         }
     }
-    public void ShowAvailableMoves(Tile selectedTile)
-    {
-        var selectedCircle = GetCircleAtPosition(selectedTile.Position);
-        if (selectedCircle == null)
-            return;
-        topRightMovesAvailable = new() { selectedTile.Position };
-        topLeftMovesAvailable = new() { selectedTile.Position };
-        bottomLeftMovesAvailable = new() { selectedTile.Position };
-        bottomRightMovesAvailable = new() { selectedTile.Position };
-        GetTopRightMoves(selectedTile);
-        GetTopLeftMoves(selectedTile);
-        GetBottomLeftMoves(selectedTile);
-        GetBottomRightMoves(selectedTile);
-        HighlightTiles(topRightMovesAvailable);
-        HighlightTiles(topLeftMovesAvailable);
-        HighlightTiles(bottomLeftMovesAvailable);
-        HighlightTiles(bottomRightMovesAvailable);
-    }
     private bool TilesAreBorders(Tile tile1, Tile tile2)
     {
         var distance = Vector2.Distance(tile1.Position, tile2.Position);
@@ -185,15 +94,117 @@ public class GridManager : MonoBehaviour
         var distance = Vector2.Distance(tilePos1, tilePos2);
         return Mathf.Abs(distance) <= Mathf.Sqrt(2);
     }
-    private void GetTopRightMoves(Tile selectedTile)
+    private List<Circle> GetCirclesBetween(Tile tile1, Tile tile2)
+    {
+        var res = new List<Circle>();
+        var tile = GetTopRightTile(tile1);
+        while (tile != null && tile.Position != tile2.Position)
+        {
+            var circleAtThePosition = GetCircleAtPosition(tile.Position);
+            if (circleAtThePosition != null)
+            {
+                res.Add(circleAtThePosition);
+            }
+            tile = GetTopRightTile(tile);
+            if (tile == null) // reached the end
+            {
+                res.Clear();
+                break;
+            }
+        }
+        if (res.Count > 0)
+            return res;
+
+        tile = GetTopLeftTile(tile1);
+        while (tile != null && tile.Position != tile2.Position)
+        {
+            var circleAtThePosition = GetCircleAtPosition(tile.Position);
+            if (circleAtThePosition != null)
+            {
+                res.Add(circleAtThePosition);
+            }
+            tile = GetTopLeftTile(tile);
+            if (tile == null) // reached the end
+            {
+                res.Clear();
+                break;
+            }
+        }
+        if (res.Count > 0)
+            return res;
+
+        tile = GetBottomLeftTile(tile1);
+        while (tile != null && tile.Position != tile2.Position)
+        {
+            var circleAtThePosition = GetCircleAtPosition(tile.Position);
+            if (circleAtThePosition != null)
+            {
+                res.Add(circleAtThePosition);
+            }
+            tile = GetBottomLeftTile(tile);
+            if (tile == null) // reached the end
+            {
+                res.Clear();
+                break;
+            }
+        }
+        if (res.Count > 0)
+            return res;
+
+        tile = GetBottomRightTile(tile1);
+        while (tile != null && tile.Position != tile2.Position)
+        {
+            var circleAtThePosition = GetCircleAtPosition(tile.Position);
+            if (circleAtThePosition != null)
+            {
+                res.Add(circleAtThePosition);
+            }
+            tile = GetBottomRightTile(tile);
+            if (tile == null) // reached the end
+            {
+                res.Clear();
+                break;
+            }
+        }
+        return res;
+    }
+    private Tile GetTopRightTile(Tile tile)
+    {
+        if (tile.Position.x == 7 || tile.Position.y == 7)
+            return null;
+        Vector2 nextPos = tile.Position + Vector2.up + Vector2.right;
+        return GetTileAtPosition(nextPos);
+    }
+    private Tile GetTopLeftTile(Tile tile)
+    {
+        if (tile.Position.x == 7 || tile.Position.y == 0)
+            return null;
+        Vector2 nextPos = tile.Position + Vector2.down + Vector2.right;
+        return GetTileAtPosition(nextPos);
+    }
+    private Tile GetBottomLeftTile(Tile tile)
+    {
+        if (tile.Position.x == 0 || tile.Position.y == 0)
+            return null;
+        Vector2 nextPos = tile.Position + Vector2.down + Vector2.left;
+        return GetTileAtPosition(nextPos);
+    }
+    private Tile GetBottomRightTile(Tile tile)
+    {
+        if (tile.Position.x == 0 || tile.Position.y == 7)
+            return null;
+        Vector2 nextPos = tile.Position + Vector2.up + Vector2.left;
+        return GetTileAtPosition(nextPos);
+    }
+    private void GetTopRightAvailableMoves(Tile selectedTile)
     {
         var tilePos = selectedTile.Position;
         var circleAtCurrentPos = GetCircleAtPosition(tilePos);
+        var isKing = circleAtCurrentPos.IsKing;
         while (!(tilePos.x == 7 || tilePos.y == 7))
         {
             Vector2 nextPos = tilePos + Vector2.up + Vector2.right;
             var circleAtNextPos = GetCircleAtPosition(nextPos);
-            var isKing = circleAtCurrentPos.IsKing;
             if (isKing)
             {
                 if (circleAtNextPos == null) //  empty tile
@@ -202,6 +213,9 @@ public class GridManager : MonoBehaviour
                 {
                     var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
                     if (!isOpponent)
+                        break;
+                    var previousCircle = GetCircleAtPosition(tilePos);
+                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
                         break;
                 }
             }
@@ -219,7 +233,7 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
+                    var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
                 }
@@ -233,15 +247,15 @@ public class GridManager : MonoBehaviour
             tilePos = nextPos;
         }
     }
-    private void GetTopLeftMoves(Tile selectedTile)
+    private void GetTopLeftAvailableMoves(Tile selectedTile)
     {
         var tilePos = selectedTile.Position;
         var circleAtCurrentPos = GetCircleAtPosition(tilePos);
+        var isKing = circleAtCurrentPos.IsKing;
         while (!(tilePos.x == 7 || tilePos.y == 0))
         {
             Vector2 nextPos = tilePos + Vector2.down + Vector2.right;
             var circleAtNextPos = GetCircleAtPosition(nextPos);
-            var isKing = circleAtCurrentPos.IsKing;
             if (isKing)
             {
                 if (circleAtNextPos == null) //  empty tile
@@ -250,6 +264,9 @@ public class GridManager : MonoBehaviour
                 {
                     var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
                     if (!isOpponent)
+                        break;
+                    var previousCircle = GetCircleAtPosition(tilePos);
+                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
                         break;
                 }
             }
@@ -267,7 +284,7 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
+                    var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
                 }
@@ -288,15 +305,15 @@ public class GridManager : MonoBehaviour
             tilePos = nextPos;
         }
     }
-    private void GetBottomLeftMoves(Tile selectedTile)
+    private void GetBottomLeftAvailableMoves(Tile selectedTile)
     {
         var tilePos = selectedTile.Position;
         var circleAtCurrentPos = GetCircleAtPosition(tilePos);
+        var isKing = circleAtCurrentPos.IsKing;
         while (!(tilePos.x == 0 || tilePos.y == 0))
         {
             Vector2 nextPos = tilePos + Vector2.down + Vector2.left;
             var circleAtNextPos = GetCircleAtPosition(nextPos);
-            var isKing = circleAtCurrentPos.IsKing;
             if (isKing)
             {
                 if (circleAtNextPos == null) //  empty tile
@@ -305,6 +322,9 @@ public class GridManager : MonoBehaviour
                 {
                     var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
                     if (!isOpponent)
+                        break;
+                    var previousCircle = GetCircleAtPosition(tilePos);
+                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
                         break;
                 }
             }
@@ -322,7 +342,7 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
+                    var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
                 }
@@ -336,15 +356,15 @@ public class GridManager : MonoBehaviour
             tilePos = nextPos;
         }
     }
-    private void GetBottomRightMoves(Tile selectedTile)
+    private void GetBottomRightAvailableMoves(Tile selectedTile)
     {
         var tilePos = selectedTile.Position;
         var circleAtCurrentPos = GetCircleAtPosition(tilePos);
+        var isKing = circleAtCurrentPos.IsKing;
         while (!(tilePos.x == 0 || tilePos.y == 7))
         {
             Vector2 nextPos = tilePos + Vector2.up + Vector2.left;
             var circleAtNextPos = GetCircleAtPosition(nextPos);
-            var isKing = circleAtCurrentPos.IsKing;
             if (isKing)
             {
                 if (circleAtNextPos == null) //  empty tile
@@ -353,6 +373,9 @@ public class GridManager : MonoBehaviour
                 {
                     var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
                     if (!isOpponent)
+                        break;
+                    var previousCircle = GetCircleAtPosition(tilePos);
+                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
                         break;
                 }
             }
@@ -370,7 +393,7 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
+                    var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
                 }
@@ -390,5 +413,137 @@ public class GridManager : MonoBehaviour
         {
             GetTileAtPosition(tilePositions[i]).SetHightlight();
         }
-    }    
+    }
+    private void RemoveCircles(List<Circle> circles)
+    {
+        foreach (var circle in circles)
+        {
+            _circles.Remove(circle.Position);
+            circle.Die();
+        }
+    }
+    public void ClearAvailableMoves()
+    {
+        var allMoves = new List<Vector2>();
+        allMoves.AddRange(topRightMovesAvailable);
+        allMoves.AddRange(topLeftMovesAvailable);
+        allMoves.AddRange(bottomRightMovesAvailable);
+        allMoves.AddRange(bottomLeftMovesAvailable);
+        foreach (var itemPos in allMoves)
+        {
+            var tile = GetTileAtPosition(itemPos);
+            tile.SetHightlight(false);
+        }
+        topRightMovesAvailable.Clear();
+        topLeftMovesAvailable.Clear();
+        bottomRightMovesAvailable.Clear();
+        bottomLeftMovesAvailable.Clear();
+    }
+    public void CreateGrid()
+    {
+        _tiles = new Dictionary<Vector2, Tile>();
+        // Calculate the world space width and height of a single tile based on the screen size and desired number of rows/columns.
+        float screenHeight = 2f * Camera.main.orthographicSize;
+        float screenWidth = screenHeight * Camera.main.aspect;
+
+        // Apply horizontal padding to both left and right sides of the screen.
+        float horizontalPadding = horizontalPaddingPercentage * screenWidth;
+        float totalWidth = screenWidth - 2 * horizontalPadding;
+
+        // Calculate the world space width and height of a single tile to keep them square.
+        float tileSize = Mathf.Min(totalWidth / columns, screenHeight / rows);
+
+        // Calculate the leftmost position of the grid based on the total width and horizontal padding.
+        float leftmostPositionX = -screenWidth / 2f + tileSize / 2f + horizontalPadding;
+        float bottommostPositionY = -tileSize * 3.5f;
+
+        // Create the grid of tiles.
+        for (int x = 0; x < rows; x++)
+        {
+            for (int y = 0; y < columns; y++)
+            {
+                Vector3 tilePosition = new Vector3(
+                    y * tileSize + leftmostPositionX,
+                    x * tileSize + bottommostPositionY,
+                    0f
+                );
+
+                Tile tile = Instantiate(tilePrefab, tilePosition, Quaternion.identity, tilesParent);
+                tile.transform.localScale = new Vector3(tileSize, tileSize, 1f);
+                tile.name = $"Tile {x} {y}";
+                var isOffset = (x % 2 == 0 && y % 2 != 0) || (x % 2 != 0 && y % 2 == 0);
+                tile.Init(isOffset, new Vector2(x, y));
+                _tiles[new Vector2(x, y)] = tile;
+            }
+        }
+    }
+    public Tile GetTileAtPosition(Vector2 pos)
+    {
+        if (_tiles.TryGetValue(pos, out var tile)) return tile;
+        return null;
+    }
+    public Circle GetCircleAtPosition(Vector2 pos)
+    {
+        if (_circles.TryGetValue(pos, out var circle)) return circle;
+        return null;
+    }
+    public void CreateCircles(bool iAmWhite)
+    {
+        _circles = new Dictionary<Vector2, Circle>();
+        if (iAmWhite) // im white
+        {
+            if (Mock.ShowMockWhiteCircles) // i am mock
+                CreateWhiteCirclesMock();
+            else // i am real
+                CreateMyCircles(iAmWhite);
+            if (Mock.ShowMockBlackCircles) // opp is mock
+                CreateBlackCirclesMock();
+            else // opp real
+                CreateOppCircles(iAmWhite);
+        }
+        else // im black
+        {
+            if (Mock.ShowMockBlackCircles) // i am mock
+                CreateBlackCirclesMock();
+            else // i am real
+                CreateMyCircles(iAmWhite);
+            if (Mock.ShowMockWhiteCircles) // opp is mock
+                CreateWhiteCirclesMock();
+            else // opp real
+                CreateOppCircles(iAmWhite);
+        }
+    }
+    public void ShowAvailableMoves(Tile selectedTile)
+    {
+        var selectedCircle = GetCircleAtPosition(selectedTile.Position);
+        GameController.Instance.SelectedCircle = selectedCircle;
+        if (selectedCircle == null)
+        {
+            GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
+            return;
+        }
+        GameController.Instance.UpdateMatchMovementState(MatchMovementState.ShowingAvailableMoves);
+        topRightMovesAvailable = new() { selectedTile.Position };
+        topLeftMovesAvailable = new() { selectedTile.Position };
+        bottomLeftMovesAvailable = new() { selectedTile.Position };
+        bottomRightMovesAvailable = new() { selectedTile.Position };
+        GetTopRightAvailableMoves(selectedTile);
+        GetTopLeftAvailableMoves(selectedTile);
+        GetBottomLeftAvailableMoves(selectedTile);
+        GetBottomRightAvailableMoves(selectedTile);
+        HighlightTiles(topRightMovesAvailable);
+        HighlightTiles(topLeftMovesAvailable);
+        HighlightTiles(bottomLeftMovesAvailable);
+        HighlightTiles(bottomRightMovesAvailable);
+    }
+    public void MoveCircle(Circle circle, Tile destination)
+    {
+        var dyingCircles = GetCirclesBetween(GetTileAtPosition(circle.Position), destination);
+        RemoveCircles(dyingCircles);
+        _circles.Remove(circle.Position);
+        _circles[destination.Position] = circle;
+        circle.Move(destination);
+        GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
+        ClearAvailableMoves();
+    }
 }
