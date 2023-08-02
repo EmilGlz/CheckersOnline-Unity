@@ -33,6 +33,6 @@ public class Tile : MonoBehaviour
 
     public void OnMouseDown()
     {
-        GridManager.Instance.ShowAvailableMovesNew(this);
+        GridManager.Instance.ShowAvailableMoves(this);
     }
 }
