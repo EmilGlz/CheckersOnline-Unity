@@ -1,3 +1,5 @@
+using System.Linq;
+using Unity.Netcode;
 using UnityEngine;
 public enum MatchMovementState
 {
@@ -18,8 +20,9 @@ public class GameController : MonoBehaviour
     #endregion
     private bool _iAmWhite;
     private MatchMovementState matchMovementState;
-    public Circle SelectedCircle;
+    [HideInInspector] public Circle SelectedCircle { get; set; }
     public bool IAmWhite => _iAmWhite;
+    private short[] lastMove;
 
     private void Start()
     {
@@ -57,7 +60,23 @@ public class GameController : MonoBehaviour
 
     public void MoveTo(Tile destination)
     {
+        PlayerNetwork pn = null;
+        pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
+        pn.MoveTo(new short[] {
+            (short)SelectedCircle.Position.x,
+            (short)SelectedCircle.Position.y,
+            (short)destination.Position.x,
+            (short)destination.Position.y,
+        });
+        var obj = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId);
         GridManager.Instance.MoveCircle(SelectedCircle, destination);
+    }
+    public void OnOpponentMoves(short[] moveData)
+    {
+        if (lastMove != null && moveData.SequenceEqual(lastMove))
+            return;
+        lastMove = moveData;
+        GridManager.Instance.MoveCircleByPos(new Vector2(moveData[0], moveData[1]), new Vector2(moveData[2], moveData[3]));
     }
 
     public void UpdateMatchMovementState(MatchMovementState state)

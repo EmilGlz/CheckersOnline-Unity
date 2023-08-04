@@ -1,4 +1,3 @@
-using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -84,11 +83,6 @@ public class GridManager : MonoBehaviour
             }
         }
     }
-    private bool TilesAreBorders(Tile tile1, Tile tile2)
-    {
-        var distance = Vector2.Distance(tile1.Position, tile2.Position);
-        return Mathf.Abs(distance) <= Mathf.Sqrt(2);
-    }
     private bool TilesAreBorders(Vector2 tilePos1, Vector2 tilePos2)
     {
         var distance = Vector2.Distance(tilePos1, tilePos2);
@@ -165,6 +159,50 @@ public class GridManager : MonoBehaviour
                 res.Clear();
                 break;
             }
+        }
+        return res;
+    }
+    private List<Tile> GetAllTopRightTiles(Tile selectedTile)
+    {
+        var res = new List<Tile>();
+        var tile = GetTopRightTile(selectedTile);
+        while (tile != null)
+        {
+            res.Add(tile);
+            tile = GetTopRightTile(tile);
+        }
+        return res;
+    }
+    private List<Tile> GetAllTopLeftTiles(Tile selectedTile)
+    {
+        var res = new List<Tile>();
+        var tile = GetTopLeftTile(selectedTile);
+        while (tile != null)
+        {
+            res.Add(tile);
+            tile = GetTopLeftTile(tile);
+        }
+        return res;
+    }
+    private List<Tile> GetAllBottomLeftTiles(Tile selectedTile)
+    {
+        var res = new List<Tile>();
+        var tile = GetBottomLeftTile(selectedTile);
+        while (tile != null)
+        {
+            res.Add(tile);
+            tile = GetBottomLeftTile(tile);
+        }
+        return res;
+    }
+    private List<Tile> GetAllBottomRightTiles(Tile selectedTile)
+    {
+        var res = new List<Tile>();
+        var tile = GetBottomRightTile(selectedTile);
+        while (tile != null)
+        {
+            res.Add(tile);
+            tile = GetBottomRightTile(tile);
         }
         return res;
     }
@@ -407,6 +445,35 @@ public class GridManager : MonoBehaviour
             tilePos = nextPos;
         }
     }
+    private void GetTopRightKillingMoves(Tile selectedTile)
+    {
+        var tilePos = selectedTile.Position;
+        var circleAtCurrentPos = GetCircleAtPosition(tilePos);
+        var isKing = circleAtCurrentPos.IsKing;
+        while (!(tilePos.x == 7 || tilePos.y == 7))
+        {
+            Vector2 nextPos = tilePos + Vector2.up + Vector2.right;
+            var circleAtNextPos = GetCircleAtPosition(nextPos);
+            if (isKing)
+            {
+                if (circleAtNextPos == null) //  empty tile
+                    topRightMovesAvailable.Add(nextPos);
+                else
+                {
+                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
+                    if (!isOpponent)
+                        break;
+                    var previousCircle = GetCircleAtPosition(tilePos);
+                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
+                        break;
+                }
+            }
+            else
+            {
+            }
+            tilePos = nextPos;
+        }
+    }
     private void HighlightTiles(List<Vector2> tilePositions)
     {
         for (int i = 0; i < tilePositions.Count; i++)
@@ -421,6 +488,124 @@ public class GridManager : MonoBehaviour
             _circles.Remove(circle.Position);
             circle.Die();
         }
+    }
+    private bool ShowNextKillingMoves(Circle selectedCircle)
+    {
+        topRightMovesAvailable = new List<Vector2> { selectedCircle.Position };
+        topLeftMovesAvailable = new List<Vector2> { selectedCircle.Position };
+        bottomLeftMovesAvailable = new List<Vector2> { selectedCircle.Position };
+        bottomRightMovesAvailable = new List<Vector2> { selectedCircle.Position };
+        var isKing = selectedCircle.IsKing;
+        // TOP RIGHT MOVES
+        var allMovesForOneDirection = GetAllTopRightTiles(GetTileAtPosition(selectedCircle.Position));
+        var allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
+        for (int i = 0; i < allMovesForOneDirectionInt.Count; i++)
+        {
+            if (allMovesForOneDirectionInt[i] == -1)
+                break;
+            if (allMovesForOneDirectionInt[i] == 1)
+                continue;
+            if (!isKing)
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if the start pos is empty or is my own circle, then stop
+                    break;
+                if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
+                    break;
+            }
+            topRightMovesAvailable.Add(allMovesForOneDirection[i].Position);
+        }
+        allMovesForOneDirection.Clear();
+        allMovesForOneDirectionInt.Clear();
+        // TOP LEFT MOVES
+        allMovesForOneDirection = GetAllTopLeftTiles(GetTileAtPosition(selectedCircle.Position));
+        allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
+        for (int i = 0; i < allMovesForOneDirectionInt.Count; i++)
+        {
+            if (allMovesForOneDirectionInt[i] == -1)
+                break;
+            if (allMovesForOneDirectionInt[i] == 1)
+                continue;
+            if (!isKing)
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if the start pos is empty or is my own circle, then stop
+                    break;
+                if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
+                    break;
+            }
+            topLeftMovesAvailable.Add(allMovesForOneDirection[i].Position);
+        }
+        allMovesForOneDirection.Clear();
+        allMovesForOneDirectionInt.Clear();
+        // BOTTOM LEFT MOVES
+        allMovesForOneDirection = GetAllBottomLeftTiles(GetTileAtPosition(selectedCircle.Position));
+        allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
+        for (int i = 0; i < allMovesForOneDirectionInt.Count; i++)
+        {
+            if (allMovesForOneDirectionInt[i] == -1)
+                break;
+            if (allMovesForOneDirectionInt[i] == 1)
+                continue;
+            if (!isKing)
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if the start pos is empty or is my own circle, then stop
+                    break;
+                if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
+                    break;
+            }
+            bottomLeftMovesAvailable.Add(allMovesForOneDirection[i].Position);
+        }
+        allMovesForOneDirection.Clear();
+        allMovesForOneDirectionInt.Clear();
+        // BOTTOM Right MOVES
+        allMovesForOneDirection = GetAllBottomRightTiles(GetTileAtPosition(selectedCircle.Position));
+        allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
+        for (int i = 0; i < allMovesForOneDirectionInt.Count; i++)
+        {
+            if (allMovesForOneDirectionInt[i] == -1)
+                break;
+            if (allMovesForOneDirectionInt[i] == 1)
+                continue;
+            if (!isKing)
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if the start pos is empty or is my own circle, then stop
+                    break;
+                if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
+                    break;
+            }
+            bottomRightMovesAvailable.Add(allMovesForOneDirection[i].Position);
+        }
+        allMovesForOneDirection.Clear();
+        allMovesForOneDirectionInt.Clear();
+        HightlightAllTilesAvailable();
+        return topRightMovesAvailable.Count + topLeftMovesAvailable.Count + bottomLeftMovesAvailable.Count + bottomRightMovesAvailable.Count > 4;
+    }
+
+    private void HightlightAllTilesAvailable()
+    {
+        HighlightTiles(topRightMovesAvailable);
+        HighlightTiles(topLeftMovesAvailable);
+        HighlightTiles(bottomLeftMovesAvailable);
+        HighlightTiles(bottomRightMovesAvailable);
+    }
+
+    public List<int> GetMovesAsIntegers(List<Tile> tiles, bool isWhite)
+    {
+        var res = new List<int>();
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            var circleAtPos = GetCircleAtPosition(tiles[i].Position);
+            if (circleAtPos == null)
+                res.Add(0);
+            else
+            {
+                var isOpponent = circleAtPos.IsWhite != isWhite;
+                if (isOpponent)
+                    res.Add(1);
+                else
+                    res.Add(-1);
+            }
+        }
+        return res;
     }
     public void ClearAvailableMoves()
     {
@@ -531,10 +716,7 @@ public class GridManager : MonoBehaviour
         GetTopLeftAvailableMoves(selectedTile);
         GetBottomLeftAvailableMoves(selectedTile);
         GetBottomRightAvailableMoves(selectedTile);
-        HighlightTiles(topRightMovesAvailable);
-        HighlightTiles(topLeftMovesAvailable);
-        HighlightTiles(bottomLeftMovesAvailable);
-        HighlightTiles(bottomRightMovesAvailable);
+        HightlightAllTilesAvailable();
     }
     public void MoveCircle(Circle circle, Tile destination)
     {
@@ -542,8 +724,33 @@ public class GridManager : MonoBehaviour
         RemoveCircles(dyingCircles);
         _circles.Remove(circle.Position);
         _circles[destination.Position] = circle;
-        circle.Move(destination);
         GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
         ClearAvailableMoves();
+        var killedOpponent = dyingCircles.Count > 0;
+        void onFinishMove(Circle circle)
+        {
+            if (killedOpponent)
+            {
+                var thereIsKillingMoves = ShowNextKillingMoves(circle);
+                if (thereIsKillingMoves)
+                    GameController.Instance.UpdateMatchMovementState(MatchMovementState.ShowingAvailableMoves);
+                else
+                {
+                    GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
+                    ClearAvailableMoves();
+                }
+            }
+        }
+        circle.Move(destination, onFinishMove);
+    }
+    public void MoveCircleByPos(Vector2 startPos, Vector2 endPos)
+    {
+        var circle = GetCircleAtPosition(startPos);
+        var destination = GetTileAtPosition(endPos);
+        var dyingCircles = GetCirclesBetween(GetTileAtPosition(circle.Position), destination);
+        RemoveCircles(dyingCircles);
+        _circles.Remove(circle.Position);
+        _circles[destination.Position] = circle;
+        circle.Move(destination);
     }
 }

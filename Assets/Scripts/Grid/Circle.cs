@@ -1,4 +1,5 @@
 using DG.Tweening;
+using System;
 using UnityEngine;
 [System.Serializable]
 public class Circle : MonoBehaviour
@@ -18,11 +19,13 @@ public class Circle : MonoBehaviour
         _isWhite = isWhite;
         _renderer.color = isWhite ? lightColor : darkColor;
     }
-    public void Move(Tile destination)
+    public void Move(Tile destination, Action<Circle> onFinish = null)
     {
-        transform.DOMove(destination.transform.position, Mock.movementDuration);
+        void OnFinish() => onFinish?.Invoke(this);
+        transform.DOMove(destination.transform.position + Vector3.back, Mock.movementDuration).OnComplete(OnFinish);
         _position = destination.Position;
     }
+
     public void Die()
     {
         gameObject.SetActive(false);
