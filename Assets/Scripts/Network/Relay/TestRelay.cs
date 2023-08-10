@@ -13,16 +13,12 @@ using Unity.Networking.Transport.Relay;
 
 public class TestRelay : MonoBehaviour
 {
-    async void Start()
-    {
-        await UnityServices.InitializeAsync();
-        async void Start()
-        {
-            await UnityServices.InitializeAsync();
-            AuthenticationService.Instance.SignedIn += OnSignIn;
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        }
-    }
+    //async void Start()
+    //{
+    //    await UnityServices.InitializeAsync();
+    //    AuthenticationService.Instance.SignedIn += OnSignIn;
+    //    await AuthenticationService.Instance.SignInAnonymouslyAsync();
+    //}
     private void OnSignIn()
     {
         Debug.Log("Signed in: " + AuthenticationService.Instance.PlayerId);

@@ -4,7 +4,7 @@ using UnityEngine;
 public static class Mock
 {
     public static float movementDuration = 1f;
-    public static bool ShowMockWhiteCircles = true;
+    public static bool ShowMockWhiteCircles = false;
     public static bool ShowMockBlackCircles = false;
     public static bool MakeAllMyPlayerKings = false;
     public static List<Vector2> WhitePositions = new List<Vector2> {

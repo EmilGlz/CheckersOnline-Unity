@@ -26,7 +26,15 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
-        InitGame(false);
+        InitUsername();
+    }
+    private void InitUsername()
+    {
+        if(string.IsNullOrEmpty(Settings.SavedUsername))
+        {
+            Settings.SavedUsername = "Player " + Random.Range(0, 100);
+        }
+        UIManager.Instance.UpdateUsernameEverywhereInUI();
     }
     public void InitGame(bool iamWhite)
     {
@@ -60,8 +68,7 @@ public class GameController : MonoBehaviour
 
     public void MoveTo(Tile destination)
     {
-        PlayerNetwork pn = null;
-        pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
+        PlayerNetwork pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
         pn.MoveTo(new short[] {
             (short)SelectedCircle.Position.x,
             (short)SelectedCircle.Position.y,
@@ -71,6 +78,7 @@ public class GameController : MonoBehaviour
         var obj = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId);
         GridManager.Instance.MoveCircle(SelectedCircle, destination);
     }
+
     public void OnOpponentMoves(short[] moveData)
     {
         if (lastMove != null && moveData.SequenceEqual(lastMove))
