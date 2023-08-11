@@ -3,12 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using Unity.Netcode.Transports.UTP;
+using Unity.Netcode;
+using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
+using static UnityEngine.RuleTile.TilingRuleOutput;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -30,7 +36,7 @@ public class LobbyManager : MonoBehaviour
     private Lobby hostLobby;
     private Lobby joinedLobby;
     private bool IsWaitingForOpponentToJoin => hostLobby != null && joinedLobby == null && hostLobby.Players.Count == 1;
-    private Lobby MyLobby {
+    public Lobby MyLobby {
 
         get => hostLobby == null ? joinedLobby : hostLobby;
         set
@@ -68,8 +74,8 @@ public class LobbyManager : MonoBehaviour
             if (lobbies.Count > 0)
             {
                 var joiningLobby = lobbies[UnityEngine.Random.Range(0, lobbies.Count)];
-                await JoinLobby(joiningLobby);
-                joinedLobby = joiningLobby;
+                joinedLobby = await JoinLobby(joiningLobby);
+                hostLobby = null;
                 onIJoinedRoom.Invoke(joiningLobby);
             }
             else
@@ -111,16 +117,18 @@ public class LobbyManager : MonoBehaviour
             throw;
         }
     }
-    public async Task JoinLobby(Lobby lobby)
+    public async Task<Lobby> JoinLobby(Lobby lobby)
     {
         try
         {
-            JoinLobbyByIdOptions options = new JoinLobbyByIdOptions()
-            {
-                Player = GetPlayer(),
-            };
-            await Lobbies.Instance.JoinLobbyByIdAsync(lobby.Id, options);
-            Debug.Log("Joined lobby " + lobby.Id);
+            var options = new JoinLobbyByIdOptions { Player = GetPlayer() };
+            var res = await Lobbies.Instance.JoinLobbyByIdAsync(lobby.Id, options);
+            var joinCode = res.Data[Constants.JoinKey].Value;
+            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+            NetworkManager.Singleton.StartClient();
+            return res;
         }
         catch (LobbyServiceException e)
         {
@@ -134,14 +142,21 @@ public class LobbyManager : MonoBehaviour
         {
             var lobbyName = Settings.SavedUsername + " lobby";
             var maxPlayers = 2;
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // host + 3 players
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
             CreateLobbyOptions options = new CreateLobbyOptions()
             {
                 IsPrivate = false,
                 Player = GetPlayer(),
+                Data = new Dictionary<string, DataObject> { 
+                    { Constants.JoinKey, new DataObject(DataObject.VisibilityOptions.Member, joinCode) } }
             };
             Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
+            RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+            NetworkManager.Singleton.StartHost();
             hostLobby = lobby;
-            Debug.Log("Created lobby " + lobby.Id);
+            joinedLobby = null;
             return lobby;
         }
         catch (LobbyServiceException e)
@@ -183,16 +198,16 @@ public class LobbyManager : MonoBehaviour
                 float heartBeatTimerMax = Settings.LobbyPollTime; // send every 1.1 seconds
                 lobbyUpdateTimer = heartBeatTimerMax;
                 var lobby = await LobbyService.Instance.GetLobbyAsync(MyLobby.Id);
-                if(IsWaitingForOpponentToJoin && lobby.Players.Count > 1)
+                if (IsWaitingForOpponentToJoin && lobby.Players.Count > 1)
                 {
                     // Opponent joined my lobby
+                    MyLobby = lobby;
                     OnOppJoinedMe?.Invoke(lobby);
                 }
                 MyLobby = lobby;
             }
         }
     }
-
     public static Player GetOpponent(Lobby lobby)
     {
         return lobby.Players.FirstOrDefault(p => p.Id != GetPlayer().Id);
@@ -201,7 +216,10 @@ public class LobbyManager : MonoBehaviour
     {
         return lobby.HostId == GetPlayer().Id;
     }
-
+    public static string GetPlayerName(Player player)
+    {
+        return player.Data["Name"].Value;
+    }
 
 
 

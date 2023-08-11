@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
@@ -13,6 +15,40 @@ public class UIManager : MonoBehaviour
     [SerializeField] TMP_Text notificationText;
     [SerializeField] TMP_InputField newUsernameInput;
     [SerializeField] GameObject loadingMenu;
+    [SerializeField] GameObject[] Menus;
+    private Menu _currentMenu;
+    public Menu CurrentMenu
+    {
+        get => _currentMenu;
+        set
+        {
+            _currentMenu = value;
+            UpdateMenu();
+            if (value == Menu.InGameMenu)
+            {
+                var opp = GameController.Instance.Opponent;
+                var oppName = opp != null ? LobbyManager.GetPlayerName(opp) : "";
+                var oppNameText = GuiUtils.FindGameObject("OppNameText", GetCurrentMenuObj()).GetComponent<TMP_Text>();
+                oppNameText.text = oppName;
+            }
+        }
+    }
+    private void UpdateMenu()
+    {
+        for (int i = 0; i < Menus.Length; i++)
+        {
+            Menus[i].SetActive(i == (int)CurrentMenu);
+        }
+    }
+    private GameObject GetCurrentMenuObj()
+    {
+        for (int i = 0; i < Menus.Length; i++)
+        {
+            if(i == (int)CurrentMenu)
+                return Menus[i];
+        }
+        return null;
+    }
     public GameObject LoadingMenuObj => loadingMenu;
     #region Singleton
     private static UIManager _instance;
@@ -25,7 +61,8 @@ public class UIManager : MonoBehaviour
     #endregion
     private void Start()
     {
-        LoadingMenu.HideLoadingText();
+        CurrentMenu = Menu.MainMenu;
+        LoadingMenu.Hide();
     }
     private void AddOnclicks()
     {
@@ -34,32 +71,26 @@ public class UIManager : MonoBehaviour
     }
     private async void QuickPlay()
     {
-        await LobbyManager.Instance.PlayRandom(OnIJoinedRoom, OnICreatedRoom, OnError);
+        await LobbyManager.Instance.PlayRandom(GameController.Instance.OnIJoinedRoom, GameController.Instance.OnICreatedRoom, OnError);
     }
-    private void OnIJoinedRoom(Lobby lobby)
+    public void OnIJoinedRoom(Lobby lobby)
     {
-        OpenMatch(lobby);
+        CurrentMenu = Menu.InGameMenu;
     }
-    private void OnICreatedRoom(Lobby lobby)
+    public void OnICreatedRoom(Lobby lobby)
     {
         ShowNotificationText("Created new room");
-        LoadingMenu.ShowLoadingText("Waiting for someone to join...");
-        LobbyManager.Instance.OnOppJoinedMe += OnOppJoinedMyRoom;
+        LoadingMenu.Show("Waiting for someone to join...");
     }
-    private void OnOppJoinedMyRoom(Lobby lobby)
+    public void OnOppJoinedMyRoom(Lobby lobby)
     {
+        CurrentMenu = Menu.InGameMenu;
         ShowNotificationText("Joined the room: " + LobbyManager.GetOpponent(lobby).Data["Name"].Value);
-        LobbyManager.Instance.OnOppJoinedMe -= OnOppJoinedMyRoom;
-        LoadingMenu.HideLoadingText();
-        OpenMatch(lobby);
+        LoadingMenu.Hide();
     }
     private void OnError(string err)
     {
         ShowNotificationText(err);
-    }
-    private void OpenMatch(Lobby lobby)
-    {
-        GameController.Instance.InitGame(Settings.hostIsWhiteLogicActivated && LobbyManager.IAmHost(lobby));
     }
     public void UpdateUsernameEverywhereInUI()
     {
@@ -79,7 +110,6 @@ public class UIManager : MonoBehaviour
         Settings.SavedUsername = username;
         UpdateUsernameEverywhereInUI();
     }
-
     private void ShowNotificationText(string text)
     {
         void MakeActionForNSeconds(Action startAction, Action finishAction, float duration, float delay)

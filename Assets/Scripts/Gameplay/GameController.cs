@@ -1,5 +1,6 @@
 using System.Linq;
 using Unity.Netcode;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 public enum MatchMovementState
 {
@@ -16,14 +17,18 @@ public class GameController : MonoBehaviour
     private void Awake()
     {
         _instance = this;
+        _camera = Camera.main;
     }
     #endregion
+    private Camera _camera;
+    [HideInInspector] public Circle SelectedCircle { get; set; }
     private bool _iAmWhite;
     private MatchMovementState matchMovementState;
-    [HideInInspector] public Circle SelectedCircle { get; set; }
     public bool IAmWhite => _iAmWhite;
     private short[] lastMove;
-
+    public Lobby CurrentLobby => LobbyManager.Instance.MyLobby;
+    public Player Opponent => LobbyManager.GetOpponent(CurrentLobby);
+    public bool MyTurn = false;
     private void Start()
     {
         InitUsername();
@@ -40,11 +45,18 @@ public class GameController : MonoBehaviour
     {
         _iAmWhite = iamWhite;
         GridManager.Instance.CreateGrid();
-        GridManager.Instance.CreateCircles(IAmWhite);
+        GridManager.Instance.CreateCircles(true);
+        _camera.transform.rotation = new Quaternion(0, 0, iamWhite ? 0 : 180, 0);
+        MyTurn = iamWhite;
     }
-
     public void TilePressed(Tile pressedTile)
     {
+        if (!MyTurn)
+            return;
+        var theCircle = GridManager.Instance.GetCircleAtPosition(pressedTile.Position);
+        if (theCircle != null)
+            if (IAmWhite != theCircle.IsWhite)
+                return;
         switch (matchMovementState)
         {
             case MatchMovementState.None:
@@ -65,9 +77,10 @@ public class GameController : MonoBehaviour
                 break;
         }
     }
-
     public void MoveTo(Tile destination)
     {
+        if (SelectedCircle.Position == destination.Position)
+            return;
         PlayerNetwork pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
         pn.MoveTo(new short[] {
             (short)SelectedCircle.Position.x,
@@ -75,20 +88,35 @@ public class GameController : MonoBehaviour
             (short)destination.Position.x,
             (short)destination.Position.y,
         });
-        var obj = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId);
         GridManager.Instance.MoveCircle(SelectedCircle, destination);
+        MyTurn = false;
     }
-
     public void OnOpponentMoves(short[] moveData)
     {
-        if (lastMove != null && moveData.SequenceEqual(lastMove))
+        if ((lastMove != null && moveData.SequenceEqual(lastMove)) || (moveData[0] == moveData[2] && moveData[1] == moveData[3]))
             return;
         lastMove = moveData;
         GridManager.Instance.MoveCircleByPos(new Vector2(moveData[0], moveData[1]), new Vector2(moveData[2], moveData[3]));
+        MyTurn = true;
     }
-
     public void UpdateMatchMovementState(MatchMovementState state)
     {
         matchMovementState = state;
+    }
+    public void OnIJoinedRoom(Lobby lobby)
+    {
+        InitGame(Settings.hostIsWhiteLogicActivated && LobbyManager.IAmHost(lobby));
+        UIManager.Instance.OnIJoinedRoom(lobby);
+    }
+    public void OnICreatedRoom(Lobby lobby)
+    {
+        LobbyManager.Instance.OnOppJoinedMe += OnOppJoinedMyRoom;
+        UIManager.Instance.OnICreatedRoom(lobby);
+    }
+    public void OnOppJoinedMyRoom(Lobby lobby)
+    {
+        UIManager.Instance.OnOppJoinedMyRoom(lobby);
+        LobbyManager.Instance.OnOppJoinedMe -= OnOppJoinedMyRoom;
+        InitGame(Settings.hostIsWhiteLogicActivated && LobbyManager.IAmHost(lobby));
     }
 }

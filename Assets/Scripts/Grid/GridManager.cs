@@ -332,13 +332,6 @@ public class GridManager : MonoBehaviour
                     if (TilesAreBorders(lastMove, selectedTile.Position))
                         break;
                 }
-                var circleAtPreviousPos = GetCircleAtPosition(tilePos);
-                var circleAtThisPos = GetCircleAtPosition(nextPos);
-                if (circleAtPreviousPos != null && circleAtThisPos != null)
-                {
-                    if (circleAtPreviousPos.IsWhite == circleAtThisPos.IsWhite != GameController.Instance.IAmWhite)
-                        break;
-                }
             }
             tilePos = nextPos;
         }
@@ -441,35 +434,6 @@ public class GridManager : MonoBehaviour
                     if (TilesAreBorders(lastMove, selectedTile.Position))
                         break;
                 }
-            }
-            tilePos = nextPos;
-        }
-    }
-    private void GetTopRightKillingMoves(Tile selectedTile)
-    {
-        var tilePos = selectedTile.Position;
-        var circleAtCurrentPos = GetCircleAtPosition(tilePos);
-        var isKing = circleAtCurrentPos.IsKing;
-        while (!(tilePos.x == 7 || tilePos.y == 7))
-        {
-            Vector2 nextPos = tilePos + Vector2.up + Vector2.right;
-            var circleAtNextPos = GetCircleAtPosition(nextPos);
-            if (isKing)
-            {
-                if (circleAtNextPos == null) //  empty tile
-                    topRightMovesAvailable.Add(nextPos);
-                else
-                {
-                    var isOpponent = circleAtNextPos.IsWhite != GameController.Instance.IAmWhite;
-                    if (!isOpponent)
-                        break;
-                    var previousCircle = GetCircleAtPosition(tilePos);
-                    if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
-                        break;
-                }
-            }
-            else
-            {
             }
             tilePos = nextPos;
         }

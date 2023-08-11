@@ -4,3 +4,11 @@ public enum WaitingMatchState
     IAmClientJoining,
     Error
 }
+
+public enum Menu
+{
+    MainMenu,
+    PlayOnlineMenu,
+    JoinPrivateRoomMenu,
+    InGameMenu
+}
