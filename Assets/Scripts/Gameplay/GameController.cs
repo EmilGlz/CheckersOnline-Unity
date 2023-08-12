@@ -28,6 +28,7 @@ public class GameController : MonoBehaviour
     private short[] lastMove;
     public Lobby CurrentLobby => LobbyManager.Instance.MyLobby;
     public Player Opponent => LobbyManager.GetOpponent(CurrentLobby);
+    public bool IsOnline => LobbyManager.Instance.MyLobby != null;
     public bool MyTurn = false;
     private void Start()
     {
@@ -51,8 +52,9 @@ public class GameController : MonoBehaviour
     }
     public void TilePressed(Tile pressedTile)
     {
-        if (!MyTurn)
-            return;
+        if (IsOnline)
+            if (!MyTurn)
+                return;
         var theCircle = GridManager.Instance.GetCircleAtPosition(pressedTile.Position);
         if (theCircle != null)
             if (IAmWhite != theCircle.IsWhite)
@@ -81,13 +83,20 @@ public class GameController : MonoBehaviour
     {
         if (SelectedCircle.Position == destination.Position)
             return;
-        PlayerNetwork pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
-        pn.MoveTo(new short[] {
+        if (IsOnline)
+        {
+            PlayerNetwork pn = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(NetworkManager.Singleton.LocalClientId).GetComponent<PlayerNetwork>();
+            pn.MoveTo(new short[] {
             (short)SelectedCircle.Position.x,
             (short)SelectedCircle.Position.y,
             (short)destination.Position.x,
             (short)destination.Position.y,
-        });
+            });
+        }
+        else
+        {
+            _iAmWhite = !_iAmWhite;
+        }
         GridManager.Instance.MoveCircle(SelectedCircle, destination);
         MyTurn = false;
     }

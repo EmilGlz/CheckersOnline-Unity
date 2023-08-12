@@ -11,6 +11,7 @@ using UnityEngine.UI;
 public class UIManager : MonoBehaviour
 {
     [SerializeField] Button quickPlayButton;
+    [SerializeField] Button playOfflineButton;
     [SerializeField] TMP_Text[] myUsernameTexts;
     [SerializeField] TMP_Text notificationText;
     [SerializeField] TMP_InputField newUsernameInput;
@@ -26,7 +27,9 @@ public class UIManager : MonoBehaviour
             UpdateMenu();
             if (value == Menu.InGameMenu)
             {
-                var opp = GameController.Instance.Opponent;
+                Player opp = null;
+                if (GameController.Instance.IsOnline)
+                    opp = GameController.Instance.Opponent;
                 var oppName = opp != null ? LobbyManager.GetPlayerName(opp) : "";
                 var oppNameText = GuiUtils.FindGameObject("OppNameText", GetCurrentMenuObj()).GetComponent<TMP_Text>();
                 oppNameText.text = oppName;
@@ -68,6 +71,13 @@ public class UIManager : MonoBehaviour
     {
         quickPlayButton.onClick.RemoveAllListeners();
         quickPlayButton.onClick.AddListener(QuickPlay);
+        playOfflineButton.onClick.RemoveAllListeners();
+        playOfflineButton.onClick.AddListener(PlayOffline);
+    }
+    private void PlayOffline()
+    {
+        GameController.Instance.InitGame(true);
+        CurrentMenu = Menu.InGameMenu;
     }
     private async void QuickPlay()
     {
