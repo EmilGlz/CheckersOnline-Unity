@@ -220,7 +220,20 @@ public class LobbyManager : MonoBehaviour
     {
         return player.Data["Name"].Value;
     }
-
+    public async void CancelCurrentHostedLobby()
+    {
+        try
+        {
+            await LobbyService.Instance.DeleteLobbyAsync(hostLobby.Id);
+            hostLobby = null;
+            NetworkManager.Singleton.Shutdown();
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+            throw;
+        }
+    }
 
 
 

@@ -697,13 +697,19 @@ public class GridManager : MonoBehaviour
             {
                 var thereIsKillingMoves = ShowNextKillingMoves(circle);
                 if (thereIsKillingMoves)
+                {
                     GameController.Instance.UpdateMatchMovementState(MatchMovementState.ShowingAvailableMoves);
+                    GameController.Instance.MyTurn = true;
+                }
                 else
                 {
                     GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
                     ClearAvailableMoves();
+                    GameController.Instance.MyTurn = false;
                 }
             }
+            else
+                GameController.Instance.MyTurn = false;
         }
         circle.Move(destination, onFinishMove);
     }

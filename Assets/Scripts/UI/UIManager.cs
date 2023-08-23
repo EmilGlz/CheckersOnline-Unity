@@ -98,6 +98,10 @@ public class UIManager : MonoBehaviour
         ShowNotificationText("Joined the room: " + LobbyManager.GetOpponent(lobby).Data["Name"].Value);
         LoadingMenu.Hide();
     }
+    public void CancelWaitingForOthersToJoin()
+    {
+        GameController.Instance.CancelWaitingForOthersToJoin();
+    }
     private void OnError(string err)
     {
         ShowNotificationText(err);

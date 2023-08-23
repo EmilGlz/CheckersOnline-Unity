@@ -10,5 +10,6 @@ public enum Menu
     MainMenu,
     PlayOnlineMenu,
     JoinPrivateRoomMenu,
-    InGameMenu
+    InGameMenu,
+    WaitingForOppToJoinMenu
 }

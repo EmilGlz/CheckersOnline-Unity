@@ -98,7 +98,6 @@ public class GameController : MonoBehaviour
             _iAmWhite = !_iAmWhite;
         }
         GridManager.Instance.MoveCircle(SelectedCircle, destination);
-        MyTurn = false;
     }
     public void OnOpponentMoves(short[] moveData)
     {
@@ -119,6 +118,7 @@ public class GameController : MonoBehaviour
     }
     public void OnICreatedRoom(Lobby lobby)
     {
+        UIManager.Instance.CurrentMenu = Menu.WaitingForOppToJoinMenu;
         LobbyManager.Instance.OnOppJoinedMe += OnOppJoinedMyRoom;
         UIManager.Instance.OnICreatedRoom(lobby);
     }
@@ -127,5 +127,10 @@ public class GameController : MonoBehaviour
         UIManager.Instance.OnOppJoinedMyRoom(lobby);
         LobbyManager.Instance.OnOppJoinedMe -= OnOppJoinedMyRoom;
         InitGame(Settings.hostIsWhiteLogicActivated && LobbyManager.IAmHost(lobby));
+    }
+    public void CancelWaitingForOthersToJoin()
+    {
+        LobbyManager.Instance.CancelCurrentHostedLobby();
+        UIManager.Instance.CurrentMenu = Menu.MainMenu;
     }
 }

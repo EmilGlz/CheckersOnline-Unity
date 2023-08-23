@@ -1,9 +1,9 @@
 {
-    "m_SelectedDeviceId": "192.168.0.101:46723",
+    "m_SelectedDeviceId": "192.168.0.103:37353",
     "m_SelectedPackage": {
-        "deviceId": "",
-        "name": "",
-        "processId": 0,
+        "deviceId": "192.168.0.106:40675",
+        "name": "com.DefaultCompany.CheckersOnline",
+        "processId": 15059,
         "exited": false
     },
     "m_SelectedPriority": 0,
@@ -12,6 +12,36 @@
             "deviceId": "192.168.0.101:46723",
             "name": "com.DefaultCompany.CheckersOnline",
             "processId": 26396,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.0.101:46723",
+            "name": "com.DefaultCompany.CheckersOnline",
+            "processId": 29021,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.0.101:34319",
+            "name": "com.DefaultCompany.CheckersOnline",
+            "processId": 22641,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.0.106:45793",
+            "name": "com.DefaultCompany.CheckersOnline",
+            "processId": 10547,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.0.106:40675",
+            "name": "com.DefaultCompany.CheckersOnline",
+            "processId": 11141,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.0.106:40675",
+            "name": "com.DefaultCompany.CheckersOnline",
+            "processId": 15059,
             "exited": false
         }
     ],

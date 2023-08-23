@@ -7,6 +7,8 @@ public static class LoadingMenu
     private static TMP_Text LoadingText => LoadingMenuObj.transform.GetChild(0).GetComponent<TMP_Text>();
     public static void Show(string text)
     {
+        Hide();
+        return;
         LoadingText.text = text;
         LoadingMenuObj.SetActive(true);
     }
