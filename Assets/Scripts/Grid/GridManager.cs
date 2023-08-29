@@ -16,6 +16,8 @@ public class GridManager : MonoBehaviour
     private List<Vector2> topLeftMovesAvailable;
     private List<Vector2> bottomLeftMovesAvailable;
     private List<Vector2> bottomRightMovesAvailable;
+    public int WhiteCirclesCount = 12;
+    public int BlackCirclesCount = 12;
     #region Singleton
     private static GridManager _instance;
     public static GridManager Instance { get { return _instance; } }
@@ -543,7 +545,6 @@ public class GridManager : MonoBehaviour
         HightlightAllTilesAvailable();
         return topRightMovesAvailable.Count + topLeftMovesAvailable.Count + bottomLeftMovesAvailable.Count + bottomRightMovesAvailable.Count > 4;
     }
-
     private void HightlightAllTilesAvailable()
     {
         HighlightTiles(topRightMovesAvailable);
@@ -551,7 +552,6 @@ public class GridManager : MonoBehaviour
         HighlightTiles(bottomLeftMovesAvailable);
         HighlightTiles(bottomRightMovesAvailable);
     }
-
     public List<int> GetMovesAsIntegers(List<Tile> tiles, bool isWhite)
     {
         var res = new List<int>();
@@ -676,10 +676,26 @@ public class GridManager : MonoBehaviour
         topLeftMovesAvailable = new() { selectedTile.Position };
         bottomLeftMovesAvailable = new() { selectedTile.Position };
         bottomRightMovesAvailable = new() { selectedTile.Position };
-        GetTopRightAvailableMoves(selectedTile);
-        GetTopLeftAvailableMoves(selectedTile);
-        GetBottomLeftAvailableMoves(selectedTile);
-        GetBottomRightAvailableMoves(selectedTile);
+        if (!selectedCircle.IsKing)
+        {
+            if (selectedCircle.IsWhite)
+            {
+                GetTopRightAvailableMoves(selectedTile);
+                GetTopLeftAvailableMoves(selectedTile);
+            }
+            else
+            {
+                GetBottomLeftAvailableMoves(selectedTile);
+                GetBottomRightAvailableMoves(selectedTile);
+            }
+        }
+        else
+        {
+            GetTopRightAvailableMoves(selectedTile);
+            GetTopLeftAvailableMoves(selectedTile);
+            GetBottomLeftAvailableMoves(selectedTile);
+            GetBottomRightAvailableMoves(selectedTile);
+        }
         HightlightAllTilesAvailable();
     }
     public void MoveCircle(Circle circle, Tile destination)
@@ -693,6 +709,13 @@ public class GridManager : MonoBehaviour
         var killedOpponent = dyingCircles.Count > 0;
         void onFinishMove(Circle circle)
         {
+            if (!circle.IsKing)
+            {
+                if (destination.Position.x == 7)
+                {
+                    circle.IsKing = true;
+                }
+            }
             if (killedOpponent)
             {
                 var thereIsKillingMoves = ShowNextKillingMoves(circle);
@@ -707,6 +730,7 @@ public class GridManager : MonoBehaviour
                     ClearAvailableMoves();
                     GameController.Instance.MyTurn = false;
                 }
+                UIManager.Instance.UpdateScore();
             }
             else
                 GameController.Instance.MyTurn = false;
@@ -722,5 +746,15 @@ public class GridManager : MonoBehaviour
         _circles.Remove(circle.Position);
         _circles[destination.Position] = circle;
         circle.Move(destination);
+        UIManager.Instance.UpdateScore();
+    }
+    public int GetAliveCirclesCount(bool white)
+    {
+        var res = 0;
+        foreach (var circle in _circles.Values)
+        {
+            res += white == circle.IsWhite ? 1 : 0;
+        }
+        return res;
     }
 }

@@ -1,23 +1,33 @@
 using DG.Tweening;
 using System;
 using UnityEngine;
-[System.Serializable]
+[Serializable]
 public class Circle : MonoBehaviour
 {
-    [SerializeField] private Color darkColor, lightColor;
     [SerializeField] private SpriteRenderer _renderer;
     private bool _isKing;
     private bool _isWhite;
     private Vector2 _position;
     public Vector2 Position => _position;
     public bool IsWhite => _isWhite;
-    public bool IsKing => _isKing;
+    public bool IsKing
+    {
+        get => _isKing;
+        set
+        {
+            _isKing = value;
+            var kingIcon = GuiUtils.FindGameObject("KingIcon", gameObject);
+            if (kingIcon == null)  
+                return;
+            kingIcon.SetActive(_isKing);
+        }
+    }
     public void Init(bool isWhite, Vector2 position, bool isKing = false)
     {
         _isKing = isKing;
         _position = position;
         _isWhite = isWhite;
-        _renderer.color = isWhite ? lightColor : darkColor;
+        _renderer.color = isWhite ? Constants.WhiteCircleColor : Constants.BlackCircleColor;
     }
     public void Move(Tile destination, Action<Circle> onFinish = null)
     {

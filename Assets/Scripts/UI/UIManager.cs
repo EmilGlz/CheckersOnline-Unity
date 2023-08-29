@@ -1,9 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
 using TMPro;
-using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -52,6 +49,15 @@ public class UIManager : MonoBehaviour
         }
         return null;
     }
+    private GameObject GetMenuObjectByEnum(Menu searchingMenu)
+    {
+        for (int i = 0; i < Menus.Length; i++)
+        {
+            if (i == (int)searchingMenu)
+                return Menus[i];
+        }
+        return null;
+    }
     public GameObject LoadingMenuObj => loadingMenu;
     #region Singleton
     private static UIManager _instance;
@@ -76,7 +82,7 @@ public class UIManager : MonoBehaviour
     }
     private void PlayOffline()
     {
-        GameController.Instance.InitGame(true);
+        GameController.Instance.InitGame(false);
         CurrentMenu = Menu.InGameMenu;
     }
     private async void QuickPlay()
@@ -144,5 +150,15 @@ public class UIManager : MonoBehaviour
         startAction.Invoke();
         yield return new WaitForSeconds(duration);
         finishAction.Invoke();
+    }
+    public void UpdateScore()
+    {
+        var currentMenu = GetMenuObjectByEnum(Menu.InGameMenu);
+        if (currentMenu == null) 
+            return;
+        var whiteScoreText = GuiUtils.FindGameObject("MyScoreText", currentMenu).GetComponent<TMP_Text>();
+        var blackScoreText = GuiUtils.FindGameObject("OppScoreText", currentMenu).GetComponent<TMP_Text>();
+        whiteScoreText.text = GridManager.Instance.GetAliveCirclesCount(true).ToString();
+        blackScoreText.text = GridManager.Instance.GetAliveCirclesCount(false).ToString();
     }
 }

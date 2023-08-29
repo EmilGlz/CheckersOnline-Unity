@@ -49,6 +49,7 @@ public class GameController : MonoBehaviour
         GridManager.Instance.CreateCircles(true);
         _camera.transform.rotation = new Quaternion(0, 0, iamWhite ? 0 : 180, 0);
         MyTurn = iamWhite;
+        UIManager.Instance.UpdateScore();
     }
     public void TilePressed(Tile pressedTile)
     {
