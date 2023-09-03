@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GuiUtils
 {
@@ -27,4 +28,31 @@ public class GuiUtils
         if (go == null) return null;
         return go.GetComponent<T>();
     }
+
+    public static void ForceUpdateLayout(GameObject gameObject)
+    {
+        if (gameObject == null)
+            return;
+
+        var rectTransform = gameObject.GetComponent<RectTransform>();
+        ForceUpdateLayout(rectTransform);
+    }
+
+    public static void ForceUpdateLayout(RectTransform rectTransform)
+    {
+        if (rectTransform == null)
+            return;
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+    }
+
+    public static void SetIcon(Image image, string iconPath)
+    {
+        Sprite sprite = Resources.Load<Sprite>(iconPath);
+        if (sprite != null)
+        {
+            image.sprite = sprite;
+        }
+    }
+
 }

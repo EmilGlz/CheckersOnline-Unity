@@ -35,7 +35,7 @@ public class GridManager : MonoBehaviour
             Circle circle = Instantiate(circlePrefab, tile.transform.position + Vector3.back, Quaternion.identity, circlesParent);
             circle.transform.localScale = tile.transform.localScale;
             circle.name = $"Circle {circlePosition.x} {circlePosition.y}";
-            circle.Init(true, circlePosition);
+            circle.Init(true, circlePosition, Mock.MakeAllWhitePlayerKings);
             _circles[circlePosition] = circle;
         }
     }
@@ -48,7 +48,7 @@ public class GridManager : MonoBehaviour
             Circle circle = Instantiate(circlePrefab, tile.transform.position + Vector3.back, Quaternion.identity, circlesParent);
             circle.transform.localScale = tile.transform.localScale;
             circle.name = $"Circle {circlePosition.x} {circlePosition.y}";
-            circle.Init(false, circlePosition);
+            circle.Init(false, circlePosition, Mock.MakeAllBlackPlayerKings);
             _circles[circlePosition] = circle;
         }
     }
@@ -63,7 +63,7 @@ public class GridManager : MonoBehaviour
                 Circle circle = Instantiate(circlePrefab, tile.transform.position + Vector3.back, Quaternion.identity, circlesParent);
                 circle.transform.localScale = tile.transform.localScale;
                 circle.name = $"Circle {circlePosition.x} {circlePosition.y}";
-                circle.Init(!iAmWhite, circlePosition);
+                circle.Init(!iAmWhite, circlePosition, !iAmWhite ? Mock.MakeAllWhitePlayerKings : Mock.MakeAllBlackPlayerKings);
                 _circles[circlePosition] = circle;
             }
         }
@@ -79,7 +79,7 @@ public class GridManager : MonoBehaviour
                 Circle circle = Instantiate(circlePrefab, tile.transform.position + Vector3.back, Quaternion.identity, circlesParent);
                 circle.transform.localScale = tile.transform.localScale;
                 circle.name = $"Circle {circlePosition.x} {circlePosition.y}";
-                circle.Init(iAmWhite, circlePosition, Mock.MakeAllMyPlayerKings);
+                circle.Init(iAmWhite, circlePosition, iAmWhite ? Mock.MakeAllWhitePlayerKings : Mock.MakeAllBlackPlayerKings);
                 _circles[circlePosition] = circle;
 
             }
@@ -698,6 +698,17 @@ public class GridManager : MonoBehaviour
         }
         HightlightAllTilesAvailable();
     }
+    private bool CircleReachedEnd(Circle theCircle, Tile destination)
+    {
+        if (theCircle.IsWhite)
+        {
+            return destination.Position.x == 7;
+        }
+        else
+        {
+            return destination.Position.x == 0;
+        }
+    }
     public void MoveCircle(Circle circle, Tile destination)
     {
         var dyingCircles = GetCirclesBetween(GetTileAtPosition(circle.Position), destination);
@@ -709,13 +720,8 @@ public class GridManager : MonoBehaviour
         var killedOpponent = dyingCircles.Count > 0;
         void onFinishMove(Circle circle)
         {
-            if (!circle.IsKing)
-            {
-                if (destination.Position.x == 7)
-                {
-                    circle.IsKing = true;
-                }
-            }
+            if (!circle.IsKing && CircleReachedEnd(circle, destination))
+                circle.IsKing = true;
             if (killedOpponent)
             {
                 var thereIsKillingMoves = ShowNextKillingMoves(circle);
@@ -745,8 +751,13 @@ public class GridManager : MonoBehaviour
         RemoveCircles(dyingCircles);
         _circles.Remove(circle.Position);
         _circles[destination.Position] = circle;
-        circle.Move(destination);
-        UIManager.Instance.UpdateScore();
+        circle.Move(destination, onFinishMove);
+        void onFinishMove(Circle circle)
+        {
+            if (!circle.IsKing && CircleReachedEnd(circle, destination))
+                circle.IsKing = true;
+            UIManager.Instance.UpdateScore();
+        }
     }
     public int GetAliveCirclesCount(bool white)
     {

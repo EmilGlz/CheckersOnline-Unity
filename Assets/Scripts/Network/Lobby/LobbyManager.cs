@@ -53,7 +53,20 @@ public class LobbyManager : MonoBehaviour
     {
         await UnityServices.InitializeAsync();
         AuthenticationService.Instance.SignedIn += OnSignIn;
-        await AuthenticationService.Instance.SignInAnonymouslyAsync();
+    }
+    public async Task<bool> SignIn()
+    {
+        if (AuthenticationService.Instance.IsSignedIn)
+            return true;
+        try
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
     private void OnSignIn()
     {
@@ -88,6 +101,51 @@ public class LobbyManager : MonoBehaviour
         {
             OnError.Invoke(e.Message);
             throw;
+        }
+    }
+    public async Task CreatePrivateRoom(Action<Lobby> onICreatedNewRoom, Action<string> OnError)
+    {
+        try
+        {
+            var lobbyName = Settings.SavedUsername + " lobby";
+            var maxPlayers = 2;
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // host + 3 players
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            CreateLobbyOptions options = new CreateLobbyOptions()
+            {
+                IsPrivate = true,
+                Player = GetPlayer(),
+                Data = new Dictionary<string, DataObject> {
+                    { Constants.JoinKey, new DataObject(DataObject.VisibilityOptions.Member, joinCode) } }
+            };
+            Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
+            RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+            NetworkManager.Singleton.StartHost();
+            hostLobby = lobby;
+            joinedLobby = null;
+            onICreatedNewRoom.Invoke(hostLobby);
+        }
+        catch (LobbyServiceException e)
+        {
+            OnError.Invoke(e.Message);
+        }
+    }
+    public async Task JoinPrivateRoom(string lobbyCode, Action<Lobby> onIJoinedRoom, Action<string> OnError)
+    {
+        try
+        {
+            JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions()
+            {
+                Player = GetPlayer()
+            };
+            joinedLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
+            hostLobby = null;
+            onIJoinedRoom.Invoke(joinedLobby);
+        }
+        catch (LobbyServiceException e)
+        {
+            OnError.Invoke(e.Message);
         }
     }
     public async Task<List<Lobby>> GetLobbies()
@@ -208,6 +266,8 @@ public class LobbyManager : MonoBehaviour
             }
         }
     }
+    public bool WaitingForOppToJoinInPrivateRoom => hostLobby != null && hostLobby.IsPrivate && hostLobby.Players.Count == 1;
+    public string CurrentPrivateRoomJoinCode => hostLobby != null ? hostLobby.LobbyCode : "";
     public static Player GetOpponent(Lobby lobby)
     {
         return lobby.Players.FirstOrDefault(p => p.Id != GetPlayer().Id);

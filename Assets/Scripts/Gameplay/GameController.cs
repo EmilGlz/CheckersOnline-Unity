@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -32,7 +33,12 @@ public class GameController : MonoBehaviour
     public bool MyTurn = false;
     private void Start()
     {
+        LoadingMenu.StartRotatingIcon();
         InitUsername();
+    }
+    public async Task<bool> SignIn()
+    {
+        return await LobbyManager.Instance.SignIn();
     }
     private void InitUsername()
     {
@@ -118,6 +124,12 @@ public class GameController : MonoBehaviour
         UIManager.Instance.OnIJoinedRoom(lobby);
     }
     public void OnICreatedRoom(Lobby lobby)
+    {
+        UIManager.Instance.CurrentMenu = Menu.WaitingForOppToJoinMenu;
+        LobbyManager.Instance.OnOppJoinedMe += OnOppJoinedMyRoom;
+        UIManager.Instance.OnICreatedRoom(lobby);
+    }
+    public void OnICreatedPrivateRoom(Lobby lobby)
     {
         UIManager.Instance.CurrentMenu = Menu.WaitingForOppToJoinMenu;
         LobbyManager.Instance.OnOppJoinedMe += OnOppJoinedMyRoom;

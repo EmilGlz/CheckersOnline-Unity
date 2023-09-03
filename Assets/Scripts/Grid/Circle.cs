@@ -24,7 +24,7 @@ public class Circle : MonoBehaviour
     }
     public void Init(bool isWhite, Vector2 position, bool isKing = false)
     {
-        _isKing = isKing;
+        IsKing = isKing;
         _position = position;
         _isWhite = isWhite;
         _renderer.color = isWhite ? Constants.WhiteCircleColor : Constants.BlackCircleColor;

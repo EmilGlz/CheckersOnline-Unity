@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using TMPro;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -8,12 +6,16 @@ using UnityEngine.UI;
 public class UIManager : MonoBehaviour
 {
     [SerializeField] Button quickPlayButton;
+    [SerializeField] Button createPrivateRoomButton;
+    [SerializeField] Button joinPrivateRoomButton;
     [SerializeField] Button playOfflineButton;
+    [SerializeField] Button playOnlineButton;
     [SerializeField] TMP_Text[] myUsernameTexts;
-    [SerializeField] TMP_Text notificationText;
     [SerializeField] TMP_InputField newUsernameInput;
+    [SerializeField] TMP_InputField roomCodeInput;
     [SerializeField] GameObject loadingMenu;
     [SerializeField] GameObject[] Menus;
+    public GameObject PopupsCanvas;
     private Menu _currentMenu;
     public Menu CurrentMenu
     {
@@ -25,11 +27,20 @@ public class UIManager : MonoBehaviour
             if (value == Menu.InGameMenu)
             {
                 Player opp = null;
-                if (GameController.Instance.IsOnline)
+                var isOnline = GameController.Instance.IsOnline;
+                if (isOnline)
                     opp = GameController.Instance.Opponent;
                 var oppName = opp != null ? LobbyManager.GetPlayerName(opp) : "";
                 var oppNameText = GuiUtils.FindGameObject("OppNameText", GetCurrentMenuObj()).GetComponent<TMP_Text>();
+                oppNameText.transform.parent.gameObject.SetActive(isOnline);
                 oppNameText.text = oppName;
+            }
+            else if (value == Menu.WaitingForOppToJoinMenu)
+            {
+                var title = GuiUtils.FindGameObject("TitleText", GetCurrentMenuObj()).GetComponent<TMP_Text>();
+                title.text = LobbyManager.Instance.WaitingForOppToJoinInPrivateRoom ? 
+                    "Lobby code: " + LobbyManager.Instance.CurrentPrivateRoomJoinCode : 
+                    "Waiting for an opponent to join...";
             }
         }
     }
@@ -65,6 +76,7 @@ public class UIManager : MonoBehaviour
     private void Awake()
     {
         _instance = this;
+        PopupsCanvas.SetActive(true);
         AddOnclicks();
     }
     #endregion
@@ -77,17 +89,56 @@ public class UIManager : MonoBehaviour
     {
         quickPlayButton.onClick.RemoveAllListeners();
         quickPlayButton.onClick.AddListener(QuickPlay);
+        createPrivateRoomButton.onClick.RemoveAllListeners();
+        createPrivateRoomButton.onClick.AddListener(CreatePrivateRoom);
+        joinPrivateRoomButton.onClick.RemoveAllListeners();
+        joinPrivateRoomButton.onClick.AddListener(JoinPrivateRoom);
         playOfflineButton.onClick.RemoveAllListeners();
         playOfflineButton.onClick.AddListener(PlayOffline);
+        playOnlineButton.onClick.RemoveAllListeners();
+        playOnlineButton.onClick.AddListener(PlayOnline);
+    }
+    private async void PlayOnline()
+    {
+        LoadingMenu.Show();
+        var signedIn = await GameController.Instance.SignIn();
+        if (signedIn)
+            CurrentMenu = Menu.PlayOnlineMenu;
+        else
+        {
+            CurrentMenu = Menu.MainMenu;
+            NotificationBox.Create("Something went wrong.");
+        }
+        LoadingMenu.Hide();
     }
     private void PlayOffline()
     {
-        GameController.Instance.InitGame(false);
+        GameController.Instance.InitGame(true);
         CurrentMenu = Menu.InGameMenu;
+    }
+    private async void CreatePrivateRoom()
+    {
+        LoadingMenu.Show();
+        await LobbyManager.Instance.CreatePrivateRoom(GameController.Instance.OnICreatedPrivateRoom, OnError);
+        LoadingMenu.Hide();
+    }
+    private async void JoinPrivateRoom()
+    {
+        var lobbyCode = roomCodeInput.text;
+        if (string.IsNullOrEmpty(lobbyCode))
+        {
+            NotificationBox.Create("Please, enter the lobby code");
+            return;
+        }
+        LoadingMenu.Show();
+        await LobbyManager.Instance.JoinPrivateRoom(lobbyCode, GameController.Instance.OnIJoinedRoom, OnError);
+        LoadingMenu.Hide();
     }
     private async void QuickPlay()
     {
+        LoadingMenu.Show();
         await LobbyManager.Instance.PlayRandom(GameController.Instance.OnIJoinedRoom, GameController.Instance.OnICreatedRoom, OnError);
+        LoadingMenu.Hide();
     }
     public void OnIJoinedRoom(Lobby lobby)
     {
@@ -95,13 +146,12 @@ public class UIManager : MonoBehaviour
     }
     public void OnICreatedRoom(Lobby lobby)
     {
-        ShowNotificationText("Created new room");
-        LoadingMenu.Show("Waiting for someone to join...");
+        NotificationBox.Create("Created new room");
     }
     public void OnOppJoinedMyRoom(Lobby lobby)
     {
         CurrentMenu = Menu.InGameMenu;
-        ShowNotificationText("Joined the room: " + LobbyManager.GetOpponent(lobby).Data["Name"].Value);
+        NotificationBox.Create("Joined the room: " + LobbyManager.GetOpponent(lobby).Data["Name"].Value);
         LoadingMenu.Hide();
     }
     public void CancelWaitingForOthersToJoin()
@@ -110,7 +160,7 @@ public class UIManager : MonoBehaviour
     }
     private void OnError(string err)
     {
-        ShowNotificationText(err);
+        NotificationBox.Create(err);
     }
     public void UpdateUsernameEverywhereInUI()
     {
@@ -124,32 +174,11 @@ public class UIManager : MonoBehaviour
         var username = newUsernameInput.text;
         if (username.Length < 3)
         {
-            ShowNotificationText("Username must not be less than 3 characters long");
+            NotificationBox.Create("Username must not be less than 3 characters long");
             return;
         }
         Settings.SavedUsername = username;
         UpdateUsernameEverywhereInUI();
-    }
-    private void ShowNotificationText(string text)
-    {
-        void MakeActionForNSeconds(Action startAction, Action finishAction, float duration, float delay)
-        {
-            StartCoroutine(MakeActionForNSecondsIE(startAction, finishAction, duration, delay));
-        }
-        notificationText.text = "";
-        MakeActionForNSeconds(() => {
-            notificationText.text = text;
-        }, () => {
-            notificationText.text = "";
-        }, 1.5f, 0f
-        );
-    }
-    private IEnumerator MakeActionForNSecondsIE(Action startAction, Action finishAction, float duration, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        startAction.Invoke();
-        yield return new WaitForSeconds(duration);
-        finishAction.Invoke();
     }
     public void UpdateScore()
     {
