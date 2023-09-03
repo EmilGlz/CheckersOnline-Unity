@@ -15,6 +15,7 @@ using Unity.Services.Relay.Models;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using static UnityEngine.RuleTile.TilingRuleOutput;
+using System.Security.Cryptography;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -141,6 +142,11 @@ public class LobbyManager : MonoBehaviour
             };
             joinedLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
             hostLobby = null;
+            var joinCode = joinedLobby.Data[Constants.JoinKey].Value;
+            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+            NetworkManager.Singleton.StartClient();
             onIJoinedRoom.Invoke(joinedLobby);
         }
         catch (LobbyServiceException e)
