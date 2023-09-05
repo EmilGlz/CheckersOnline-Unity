@@ -19,6 +19,8 @@ public class Circle : MonoBehaviour
             var kingIcon = GuiUtils.FindGameObject("KingIcon", gameObject);
             if (kingIcon == null)  
                 return;
+            bool cameraIsUpsideDown = GameController.Instance.CameraRotation.z == 180;
+            kingIcon.transform.localScale = cameraIsUpsideDown ? new Vector2(1, -1) : new Vector2(1, 1);
             kingIcon.SetActive(_isKing);
         }
     }

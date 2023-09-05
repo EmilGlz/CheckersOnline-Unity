@@ -48,11 +48,9 @@ public class GuiUtils
 
     public static void SetIcon(Image image, string iconPath)
     {
-        Sprite sprite = Resources.Load<Sprite>(iconPath);
+        var sprite = Resources.Load<Sprite>(iconPath);
         if (sprite != null)
-        {
             image.sprite = sprite;
-        }
     }
 
 }

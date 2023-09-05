@@ -30,6 +30,11 @@ public class GameController : MonoBehaviour
     public Lobby CurrentLobby => LobbyManager.Instance.MyLobby;
     public Player Opponent => LobbyManager.GetOpponent(CurrentLobby);
     public bool IsOnline => LobbyManager.Instance.MyLobby != null;
+    public Vector3 CameraRotation
+    {
+        get => _camera.transform.localEulerAngles;
+        set => _camera.transform.localEulerAngles = value;
+    }
     public bool MyTurn = false;
     private void Start()
     {
@@ -53,7 +58,7 @@ public class GameController : MonoBehaviour
         _iAmWhite = iamWhite;
         GridManager.Instance.CreateGrid();
         GridManager.Instance.CreateCircles(true);
-        _camera.transform.rotation = new Quaternion(0, 0, iamWhite ? 0 : 180, 0);
+        CameraRotation = new Vector3(0, 0, iamWhite ? 0 : 180);
         MyTurn = iamWhite;
         UIManager.Instance.UpdateScore();
     }

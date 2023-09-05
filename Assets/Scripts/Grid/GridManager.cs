@@ -276,6 +276,12 @@ public class GridManager : MonoBehaviour
                     var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
+                    else
+                    {
+                        var previousCircle = GetCircleAtPosition(tilePos);
+                        if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
+                            break;
+                    }
                 }
                 if (topRightMovesAvailable.Count == 2)
                 {
@@ -327,6 +333,12 @@ public class GridManager : MonoBehaviour
                     var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
+                    else
+                    {
+                        var previousCircle = GetCircleAtPosition(tilePos);
+                        if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
+                            break;
+                    }
                 }
                 if (topLeftMovesAvailable.Count == 2)
                 {
@@ -378,6 +390,12 @@ public class GridManager : MonoBehaviour
                     var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
+                    else
+                    {
+                        var previousCircle = GetCircleAtPosition(tilePos);
+                        if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
+                            break;
+                    }
                 }
                 if (bottomLeftMovesAvailable.Count == 2)
                 {
@@ -429,6 +447,12 @@ public class GridManager : MonoBehaviour
                     var isOpponent = circleAtNextPos.IsWhite != circleAtCurrentPos.IsWhite;
                     if (!isOpponent)
                         break;
+                    else
+                    {
+                        var previousCircle = GetCircleAtPosition(tilePos);
+                        if (previousCircle != null && previousCircle.IsWhite == circleAtNextPos.IsWhite)
+                            break;
+                    }
                 }
                 if (bottomRightMovesAvailable.Count == 2)
                 {
@@ -455,6 +479,62 @@ public class GridManager : MonoBehaviour
             circle.Die();
         }
     }
+    private void ShowNextKillingMoves1(Tile selectedTile)
+    {
+        var selectedCircle = GetCircleAtPosition(selectedTile.Position);
+        GameController.Instance.SelectedCircle = selectedCircle;
+        if (selectedCircle == null)
+        {
+            GameController.Instance.UpdateMatchMovementState(MatchMovementState.None);
+            return;
+        }
+        GameController.Instance.UpdateMatchMovementState(MatchMovementState.ShowingAvailableMoves);
+        topRightMovesAvailable = new() { selectedTile.Position };
+        topLeftMovesAvailable = new() { selectedTile.Position };
+        bottomLeftMovesAvailable = new() { selectedTile.Position };
+        bottomRightMovesAvailable = new() { selectedTile.Position };
+        GetTopRightAvailableMoves(selectedTile);
+        GetTopLeftAvailableMoves(selectedTile);
+        GetBottomLeftAvailableMoves(selectedTile);
+        GetBottomRightAvailableMoves(selectedTile);
+        foreach (var item in topRightMovesAvailable)
+        {
+            var circleAtPos = GetCircleAtPosition(item);
+            if (circleAtPos == null)
+            {
+                topRightMovesAvailable = new();
+                break;
+            }
+        }
+        foreach (var item in topLeftMovesAvailable)
+        {
+            var circleAtPos = GetCircleAtPosition(item);
+            if (circleAtPos == null)
+            {
+                topRightMovesAvailable = new();
+                break;
+            }
+        }
+        foreach (var item in bottomLeftMovesAvailable)
+        {
+            var circleAtPos = GetCircleAtPosition(item);
+            if (circleAtPos == null)
+            {
+                topRightMovesAvailable = new();
+                break;
+            }
+        }
+        foreach (var item in bottomRightMovesAvailable)
+        {
+            var circleAtPos = GetCircleAtPosition(item);
+            if (circleAtPos == null)
+            {
+                topRightMovesAvailable = new();
+                break;
+            }
+        }
+        HightlightAllTilesAvailable();
+    }
     private bool ShowNextKillingMoves(Circle selectedCircle)
     {
         topRightMovesAvailable = new List<Vector2> { selectedCircle.Position };
@@ -465,6 +545,7 @@ public class GridManager : MonoBehaviour
         // TOP RIGHT MOVES
         var allMovesForOneDirection = GetAllTopRightTiles(GetTileAtPosition(selectedCircle.Position));
         var allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
+        bool iamKingAndFoundOpponent = false;
         for (int i = 0; i < allMovesForOneDirectionInt.Count; i++)
         {
             if (allMovesForOneDirectionInt[i] == -1)
@@ -478,10 +559,22 @@ public class GridManager : MonoBehaviour
                 if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
                     break;
             }
+            else
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if first place is empty, wait for the next ones
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 0 && !iamKingAndFoundOpponent)
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 1)
+                    iamKingAndFoundOpponent = true;
+                if (i > 0 && allMovesForOneDirectionInt[i] == 1 && allMovesForOneDirectionInt[i - 1] == 1) // if two respective opponent, then stop
+                    break;
+            }
             topRightMovesAvailable.Add(allMovesForOneDirection[i].Position);
         }
         allMovesForOneDirection.Clear();
         allMovesForOneDirectionInt.Clear();
+        iamKingAndFoundOpponent = false;
         // TOP LEFT MOVES
         allMovesForOneDirection = GetAllTopLeftTiles(GetTileAtPosition(selectedCircle.Position));
         allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
@@ -498,10 +591,22 @@ public class GridManager : MonoBehaviour
                 if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
                     break;
             }
+            else
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if first place is empty, wait for the next ones
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 0 && !iamKingAndFoundOpponent)
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 1)
+                    iamKingAndFoundOpponent = true;
+                if (i > 0 && allMovesForOneDirectionInt[i] == 1 && allMovesForOneDirectionInt[i - 1] == 1) // if two respective opponent, then stop
+                    break;
+            }
             topLeftMovesAvailable.Add(allMovesForOneDirection[i].Position);
         }
         allMovesForOneDirection.Clear();
         allMovesForOneDirectionInt.Clear();
+        iamKingAndFoundOpponent = false;
         // BOTTOM LEFT MOVES
         allMovesForOneDirection = GetAllBottomLeftTiles(GetTileAtPosition(selectedCircle.Position));
         allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
@@ -518,10 +623,22 @@ public class GridManager : MonoBehaviour
                 if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
                     break;
             }
+            else
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if first place is empty, wait for the next ones
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 0 && !iamKingAndFoundOpponent)
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 1)
+                    iamKingAndFoundOpponent = true;
+                if (i > 0 && allMovesForOneDirectionInt[i] == 1 && allMovesForOneDirectionInt[i - 1] == 1) // if two respective opponent, then stop
+                    break;
+            }
             bottomLeftMovesAvailable.Add(allMovesForOneDirection[i].Position);
         }
         allMovesForOneDirection.Clear();
         allMovesForOneDirectionInt.Clear();
+        iamKingAndFoundOpponent = false;
         // BOTTOM Right MOVES
         allMovesForOneDirection = GetAllBottomRightTiles(GetTileAtPosition(selectedCircle.Position));
         allMovesForOneDirectionInt = GetMovesAsIntegers(allMovesForOneDirection, selectedCircle.IsWhite);
@@ -536,6 +653,17 @@ public class GridManager : MonoBehaviour
                 if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if the start pos is empty or is my own circle, then stop
                     break;
                 if (allMovesForOneDirectionInt[i] == 0 && allMovesForOneDirectionInt[i - 1] != 1) // if it is empty cell, and before is not opponent, then stop
+                    break;
+            }
+            else
+            {
+                if (i == 0 && allMovesForOneDirectionInt[i] == 0) // if first place is empty, wait for the next ones
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 0 && !iamKingAndFoundOpponent)
+                    continue;
+                if (allMovesForOneDirectionInt[i] == 1)
+                    iamKingAndFoundOpponent = true;
+                if (i > 0 && allMovesForOneDirectionInt[i] == 1 && allMovesForOneDirectionInt[i - 1] == 1) // if two respective opponent, then stop
                     break;
             }
             bottomRightMovesAvailable.Add(allMovesForOneDirection[i].Position);

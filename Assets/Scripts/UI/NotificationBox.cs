@@ -5,16 +5,15 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static System.Collections.Specialized.BitVector32;
 using Object = UnityEngine.Object;
 
-public class NotificationBox : IPopup, IDisposable
+public class NotificationBox : Popup, IDisposable
 {
-    public string ItemTemplateName => "Prefabs/Popups/NotificationPopup";
-    public GameObject ItemTemplate { get; set; }
-    public bool FromTop => true;
+    protected override string ItemTemplateName => "Prefabs/Popups/NotificationPopup";
+    protected override GameObject ItemTemplate { get; set; }
+    protected override bool FromTop => false;
+    protected override float AnimationDuration => .3f;
     private readonly int _autoHideDelayTime = 2;
-    public float AnimationDuration => .3f;
     private readonly string _title;
     public NotificationBox(string title)
     {
@@ -25,7 +24,7 @@ public class NotificationBox : IPopup, IDisposable
         var popup = new NotificationBox(title);
         popup.Show();
     }
-    private void Show()
+    protected override void Show()
     {
         var res = ResourceHelper.InstantiatePrefab(ItemTemplateName, UIManager.Instance.PopupsCanvas.transform);
         if (res == null)
@@ -34,9 +33,13 @@ public class NotificationBox : IPopup, IDisposable
         ItemTemplate.name = typeof(NotificationBox).Name;
         var titleText = GuiUtils.FindGameObject("Text", ItemTemplate).GetComponent<TMP_Text>();
         titleText.text = _title;
+        var vlg = ItemTemplate.GetComponent<VerticalLayoutGroup>();
+        vlg.padding.top = FromTop ? 10 : 0;
+        vlg.padding.bottom = FromTop ? 0 : 10;
         InitAnimationParameters();
         OpenAnimation();
         Hide(_autoHideDelayTime);
+        base.Show();
     }
     private void InitAnimationParameters()
     {
@@ -47,18 +50,18 @@ public class NotificationBox : IPopup, IDisposable
         popupRect.SetRight(0);
         GuiUtils.ForceUpdateLayout(popupRect);
         var popupHeight = popupRect.GetHeight();
+        var toolbarHeight = 30;
         if (FromTop)
         {
-            GuiUtils.SetIcon(ItemTemplate.GetComponent<Image>(), "Sprites/BackgroundRoundBottom@2x.png");
             popupRect.anchorMax = new Vector2(1, 1);
             popupRect.anchorMin = new Vector2(0, 1);
-            popupRect.SetPosY(popupHeight);
+            popupRect.SetPosY(popupHeight + toolbarHeight);
         }
         else
         {
-            popupRect.anchorMax = new Vector2(0, 0);
-            popupRect.anchorMin = new Vector2(1, 0);
-            popupRect.SetPosY(0);   
+            popupRect.anchorMax = new Vector2(1, 0);
+            popupRect.anchorMin = new Vector2(0, 0);
+            popupRect.SetPosY(-toolbarHeight);   
         }
     }
     private void Hide(int delayTime = 0)
@@ -82,28 +85,27 @@ public class NotificationBox : IPopup, IDisposable
             ItemTemplate = null;
         }
     }
-    public void OpenAnimation(Action callback = null)
+    protected override void OpenAnimation(Action callback = null)
     {
+        GuiUtils.ForceUpdateLayout(ItemTemplate);
         var popupRect = ItemTemplate.GetComponent<RectTransform>();
         var value = popupRect.GetPosY();
+        var destination = FromTop ? 0 : popupRect.GetHeight();
         void UpdateValue() => popupRect.SetPosY(value);
-        if (FromTop)
-            DOTween.To(() => value, x => value = x, 0, AnimationDuration)
-            .SetEase(Ease.Linear)
-            .OnUpdate(UpdateValue);
-        else { }
+        DOTween.To(() => value, x => value = x, destination, AnimationDuration)
+        .SetEase(Ease.Linear)
+        .OnUpdate(UpdateValue);
     }
-    public void CloseAnimation(Action callback = null)
+    protected override void CloseAnimation(Action callback = null)
     {
+        var toolbarHeight = 30;
         var popupRect = ItemTemplate.GetComponent<RectTransform>();
         var value = popupRect.GetPosY();
         void UpdateValue() => popupRect.SetPosY(value);
-        var destination = popupRect.GetHeight();
-        if (FromTop)
-            DOTween.To(() => value, x => value = x, destination, AnimationDuration)
-            .SetEase(Ease.Linear)
-            .OnUpdate(UpdateValue)
-            .OnComplete(() => callback?.Invoke());
-        else { }
+        var destination = FromTop ? popupRect.GetHeight() + toolbarHeight : -toolbarHeight;
+        DOTween.To(() => value, x => value = x, destination, AnimationDuration)
+        .SetEase(Ease.Linear)
+        .OnUpdate(UpdateValue)
+        .OnComplete(() => callback?.Invoke());
     }
 }
