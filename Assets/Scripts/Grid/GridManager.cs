@@ -896,4 +896,18 @@ public class GridManager : MonoBehaviour
         }
         return res;
     }
+    public void DisposeAllTiles()
+    {
+        foreach (var tile in _tiles.Values)
+        {
+            Object.Destroy(tile.gameObject);
+        }
+    }
+    public void DisposeAllCircles()
+    {
+        foreach (var tile in _circles.Values)
+        {
+            Object.Destroy(tile.gameObject);
+        }
+    }
 }

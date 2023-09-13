@@ -38,6 +38,7 @@ public class GameController : MonoBehaviour
     public bool MyTurn = false;
     private void Start()
     {
+        LobbyManager.Instance.OnOppQuittedLobby += OnOppQuittedLobby;
         LoadingMenu.StartRotatingIcon();
         InitUsername();
     }
@@ -47,7 +48,7 @@ public class GameController : MonoBehaviour
     }
     private void InitUsername()
     {
-        if(string.IsNullOrEmpty(Settings.SavedUsername))
+        if (string.IsNullOrEmpty(Settings.SavedUsername))
         {
             Settings.SavedUsername = "Player " + Random.Range(0, 100);
         }
@@ -146,9 +147,23 @@ public class GameController : MonoBehaviour
         LobbyManager.Instance.OnOppJoinedMe -= OnOppJoinedMyRoom;
         InitGame(Settings.hostIsWhiteLogicActivated && LobbyManager.IAmHost(lobby));
     }
+    public void OnOppQuittedLobby()
+    {
+        UIManager.Instance.OpenResultMenu(true, "Opponent quitted the match, You Won!");
+    }
     public void CancelWaitingForOthersToJoin()
     {
         LobbyManager.Instance.CancelCurrentHostedLobby();
         UIManager.Instance.CurrentMenu = Menu.MainMenu;
+    }
+    public void DisposeTable()
+    {
+        GridManager.Instance.DisposeAllCircles();
+        GridManager.Instance.DisposeAllTiles();
+    }
+
+    private void OnDisable()
+    {
+        LobbyManager.Instance.OnOppQuittedLobby -= OnOppQuittedLobby;
     }
 }

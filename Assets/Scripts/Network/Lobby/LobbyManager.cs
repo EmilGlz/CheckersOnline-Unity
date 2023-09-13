@@ -34,6 +34,7 @@ public class LobbyManager : MonoBehaviour
     #endregion
 
     public Action<Lobby> OnOppJoinedMe;
+    public Action OnOppQuittedLobby;
     private Lobby hostLobby;
     private Lobby joinedLobby;
     private bool IsWaitingForOpponentToJoin => hostLobby != null && joinedLobby == null && hostLobby.Players.Count == 1;
@@ -262,11 +263,17 @@ public class LobbyManager : MonoBehaviour
                 float heartBeatTimerMax = Settings.LobbyPollTime; // send every 1.1 seconds
                 lobbyUpdateTimer = heartBeatTimerMax;
                 var lobby = await LobbyService.Instance.GetLobbyAsync(MyLobby.Id);
+                Debug.Log("Users count inside lobby: " + lobby.Players.Count);
                 if (IsWaitingForOpponentToJoin && lobby.Players.Count > 1)
                 {
                     // Opponent joined my lobby
                     MyLobby = lobby;
                     OnOppJoinedMe?.Invoke(lobby);
+                }
+                if (MyLobby.Players.Count > 1 && lobby.Players.Count == 1)
+                {
+                    // Opponent quitted the lobby
+                    OnOppQuittedLobby?.Invoke();
                 }
                 MyLobby = lobby;
             }

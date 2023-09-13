@@ -16,6 +16,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] GameObject loadingMenu;
     [SerializeField] GameObject[] Menus;
     public GameObject PopupsCanvas;
+    public Canvas Canvas;
     private Menu _currentMenu;
     public Menu CurrentMenu
     {
@@ -189,5 +190,12 @@ public class UIManager : MonoBehaviour
         var blackScoreText = GuiUtils.FindGameObject("OppScoreText", currentMenu).GetComponent<TMP_Text>();
         whiteScoreText.text = GridManager.Instance.GetAliveCirclesCount(true).ToString();
         blackScoreText.text = GridManager.Instance.GetAliveCirclesCount(false).ToString();
+    }
+    public void OpenResultMenu(bool win, string message = "")
+    {
+        var title = string.IsNullOrEmpty(message) ?
+            win ? "Congratulations, You Won!!!" : "Defeat! You Lost!!!" :
+            message;
+        MatchResultPopup.Create(win, title);
     }
 }

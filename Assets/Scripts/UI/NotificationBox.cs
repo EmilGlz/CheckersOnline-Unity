@@ -7,14 +7,30 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-public class NotificationBox : Popup, IDisposable
+public class NotificationBox : Popup
 {
     protected override string ItemTemplateName => "Prefabs/Popups/NotificationPopup";
-    protected override GameObject ItemTemplate { get; set; }
-    protected override bool FromTop => false;
+    protected override bool FromTop => true;
     protected override float AnimationDuration => .3f;
     private readonly int _autoHideDelayTime = 2;
     private readonly string _title;
+    protected override float OpeningDestinationY
+    {
+        get
+        {
+            var popupRect = ItemTemplate.GetComponent<RectTransform>();
+            return FromTop ? 0 : popupRect.GetHeight();
+        }
+    }
+    protected override float ClosingDestinationY
+    {
+        get
+        {
+            var popupRect = ItemTemplate.GetComponent<RectTransform>();
+            var toolbarHeight = 30;
+            return FromTop ? popupRect.GetHeight() + toolbarHeight : -toolbarHeight;
+        }
+    }
     public NotificationBox(string title)
     {
         _title = title;
@@ -26,43 +42,14 @@ public class NotificationBox : Popup, IDisposable
     }
     protected override void Show()
     {
-        var res = ResourceHelper.InstantiatePrefab(ItemTemplateName, UIManager.Instance.PopupsCanvas.transform);
-        if (res == null)
-            Dispose();
-        ItemTemplate = res;
+        base.Show();
         ItemTemplate.name = typeof(NotificationBox).Name;
         var titleText = GuiUtils.FindGameObject("Text", ItemTemplate).GetComponent<TMP_Text>();
         titleText.text = _title;
         var vlg = ItemTemplate.GetComponent<VerticalLayoutGroup>();
         vlg.padding.top = FromTop ? 10 : 0;
         vlg.padding.bottom = FromTop ? 0 : 10;
-        InitAnimationParameters();
-        OpenAnimation();
         Hide(_autoHideDelayTime);
-        base.Show();
-    }
-    private void InitAnimationParameters()
-    {
-        if (ItemTemplate == null)
-            return;
-        var popupRect = ItemTemplate.GetComponent<RectTransform>();
-        popupRect.SetLeft(0);
-        popupRect.SetRight(0);
-        GuiUtils.ForceUpdateLayout(popupRect);
-        var popupHeight = popupRect.GetHeight();
-        var toolbarHeight = 30;
-        if (FromTop)
-        {
-            popupRect.anchorMax = new Vector2(1, 1);
-            popupRect.anchorMin = new Vector2(0, 1);
-            popupRect.SetPosY(popupHeight + toolbarHeight);
-        }
-        else
-        {
-            popupRect.anchorMax = new Vector2(1, 0);
-            popupRect.anchorMin = new Vector2(0, 0);
-            popupRect.SetPosY(-toolbarHeight);   
-        }
     }
     private void Hide(int delayTime = 0)
     {
@@ -77,13 +64,14 @@ public class NotificationBox : Popup, IDisposable
         CloseAnimation(Dispose);
 
     }
-    public void Dispose()
+    public override void Dispose()
     {
         if (ItemTemplate != null)
         {
             Object.Destroy(ItemTemplate);
             ItemTemplate = null;
         }
+        base.Dispose();
     }
     protected override void OpenAnimation(Action callback = null)
     {
