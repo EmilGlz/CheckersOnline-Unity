@@ -188,14 +188,20 @@ public class UIManager : MonoBehaviour
             return;
         var whiteScoreText = GuiUtils.FindGameObject("MyScoreText", currentMenu).GetComponent<TMP_Text>();
         var blackScoreText = GuiUtils.FindGameObject("OppScoreText", currentMenu).GetComponent<TMP_Text>();
-        whiteScoreText.text = GridManager.Instance.GetAliveCirclesCount(true).ToString();
-        blackScoreText.text = GridManager.Instance.GetAliveCirclesCount(false).ToString();
-    }
-    public void OpenResultMenu(bool win, string message = "")
-    {
-        var title = string.IsNullOrEmpty(message) ?
-            win ? "Congratulations, You Won!!!" : "Defeat! You Lost!!!" :
-            message;
-        MatchResultPopup.Create(win, title);
+        whiteScoreText.color = Color.white;
+        blackScoreText.color = Color.black;
+        var whiteCount = GridManager.Instance.GetAliveCirclesCount(true);
+        var blackCount = GridManager.Instance.GetAliveCirclesCount(false);
+        whiteScoreText.text = whiteCount.ToString();
+        blackScoreText.text = blackCount.ToString();
+        bool iamWhite = GameController.Instance.IAmWhite;
+        if (!GameController.Instance.IsOnline)
+            iamWhite = GameController.Instance.CameraRotation.z == 0;
+        bool iWon = iamWhite && blackCount == 0;
+        bool iLost= !iamWhite && whiteCount == 0;
+        if (iWon)
+            MatchResultPopup.Create(true);
+        else if (iLost)
+            MatchResultPopup.Create(false);
     }
 }

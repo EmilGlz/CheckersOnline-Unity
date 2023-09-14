@@ -898,6 +898,8 @@ public class GridManager : MonoBehaviour
     }
     public void DisposeAllTiles()
     {
+        if (_tiles == null)
+            return;
         foreach (var tile in _tiles.Values)
         {
             Object.Destroy(tile.gameObject);
@@ -905,6 +907,8 @@ public class GridManager : MonoBehaviour
     }
     public void DisposeAllCircles()
     {
+        if (_circles == null)
+            return;
         foreach (var tile in _circles.Values)
         {
             Object.Destroy(tile.gameObject);

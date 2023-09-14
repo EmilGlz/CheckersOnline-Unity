@@ -149,7 +149,7 @@ public class GameController : MonoBehaviour
     }
     public void OnOppQuittedLobby()
     {
-        UIManager.Instance.OpenResultMenu(true, "Opponent quitted the match, You Won!");
+        MatchResultPopup.Create(true, "Opponent quitted the match, You Won!");
     }
     public void CancelWaitingForOthersToJoin()
     {
